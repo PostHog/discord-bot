@@ -1,0 +1,20 @@
+[Unit]
+Description=Discord -> PostHog analytics bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hog
+WorkingDirectory=/home/hog/discord-bot
+# The app reads its .env (DISCORD_TOKEN, DISCORD_CLIENT_ID, DATABASE_PATH) from
+# this working directory via dotenv — keep .env next to the code.
+ExecStart=/usr/bin/node dist/index.js
+Environment=NODE_ENV=production
+# Survive crashes and in-box reboots. (Does NOT survive the box being reaped by
+# Karpenter consolidation — snapshot the box for that, see README.)
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
