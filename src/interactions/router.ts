@@ -14,6 +14,12 @@ import {
 } from "./setup.js";
 import { handleStatusCommand } from "./status.js";
 import { handleTestCommand } from "./test.js";
+import {
+  handleTriggerAdd,
+  handleTriggerList,
+  handleTriggerRemove,
+  handleTriggerToggle,
+} from "./triggers.js";
 
 /**
  * Single entry point for `Events.InteractionCreate`. Dispatches slash-command
@@ -45,7 +51,23 @@ export async function routeInteraction(interaction: Interaction): Promise<void> 
     }
 
     if (interaction.isChatInputCommand() && interaction.commandName === "analytics") {
+      const group = interaction.options.getSubcommandGroup(false);
       const sub = interaction.options.getSubcommand();
+
+      if (group === "trigger") {
+        switch (sub) {
+          case "add":
+            return await handleTriggerAdd(interaction);
+          case "list":
+            return await handleTriggerList(interaction);
+          case "remove":
+            return await handleTriggerRemove(interaction);
+          case "toggle":
+            return await handleTriggerToggle(interaction);
+        }
+        return;
+      }
+
       switch (sub) {
         case "setup":
           return await handleSetupCommand(interaction);

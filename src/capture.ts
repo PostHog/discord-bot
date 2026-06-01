@@ -56,10 +56,32 @@ function shouldSample(config: GuildConfig, event: string): boolean {
 }
 
 /**
- * The single choke point for sending an event to a guild's PostHog project.
- * Applies the full gate (configured? event enabled? bot filter? sampling?),
- * attaches person + group context, and never throws — analytics failures must
- * not affect bot behaviour.
+ * Shared tail: actually send the event to the guild's PostHog project, attaching
+ * person + group context. Callers are responsible for the gating they need.
+ */
+function sendToGuild(
+  cfg: GuildConfig,
+  args: CaptureArgs
+): void {
+  const client = getPostHogClient(cfg.posthogHost, cfg.posthogApiKey!);
+
+  const properties: Record<string, unknown> = {
+    ...args.properties,
+    ...(args.actor ? personSet(args.actor) : {}),
+  };
+
+  client.capture({
+    distinctId: args.distinctId,
+    event: args.event,
+    properties,
+    groups: { discord_server: args.guildId },
+  });
+}
+
+/**
+ * The choke point for built-in catalog events. Applies the full gate
+ * (configured? event enabled? bot filter? sampling?) and never throws —
+ * analytics failures must not affect bot behaviour.
  */
 export function captureForGuild(args: CaptureArgs): void {
   try {
@@ -74,22 +96,27 @@ export function captureForGuild(args: CaptureArgs): void {
     // Gate 4: optional sampling.
     if (!shouldSample(cfg, args.event)) return;
 
-    const client = getPostHogClient(cfg.posthogHost, cfg.posthogApiKey);
-
-    const properties: Record<string, unknown> = {
-      ...args.properties,
-      ...(args.actor ? personSet(args.actor) : {}),
-    };
-
-    client.capture({
-      distinctId: args.distinctId,
-      event: args.event,
-      properties,
-      groups: { discord_server: args.guildId },
-    });
+    sendToGuild(cfg, args);
   } catch (err) {
     // Swallow — never let analytics break the bot. Log for operators.
     console.error(`[capture] failed for event ${args.event}:`, err);
+  }
+}
+
+/**
+ * Send a custom event fired by a user-defined trigger. Unlike
+ * {@link captureForGuild}, this is NOT gated on the built-in event catalog or
+ * sampling — a trigger fires whenever the guild is configured (and the bot
+ * filter passes), regardless of which catalog events are enabled.
+ */
+export function captureCustomEvent(args: CaptureArgs): void {
+  try {
+    const cfg = getGuildConfig(args.guildId);
+    if (!cfg || !cfg.posthogApiKey) return;
+    if (cfg.ignoreBots && args.actor?.bot) return;
+    sendToGuild(cfg, args);
+  } catch (err) {
+    console.error(`[capture] custom event ${args.event} failed:`, err);
   }
 }
 

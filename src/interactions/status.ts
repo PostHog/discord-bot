@@ -4,7 +4,7 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { readGuildConfig } from "../db.js";
+import { countTriggers, readGuildConfig } from "../db.js";
 import { EVENT_CATALOG } from "../events-catalog.js";
 
 /** Mask an API key so `/analytics status` never echoes it in full. */
@@ -53,6 +53,11 @@ export async function handleStatusCommand(
       {
         name: `Enabled events (${cfg.enabledEvents.length})`,
         value: eventLines,
+        inline: false,
+      },
+      {
+        name: "Custom triggers",
+        value: `${countTriggers(interaction.guildId)} (see \`/analytics trigger list\`)`,
         inline: false,
       }
     );

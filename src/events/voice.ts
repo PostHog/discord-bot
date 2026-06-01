@@ -2,6 +2,7 @@ import { type Client, Events, type VoiceState } from "discord.js";
 
 import { captureForGuild, toPersonLike } from "../capture.js";
 import { guildProps } from "../props.js";
+import { runVoiceJoinTriggers } from "../triggers.js";
 
 /** Voice channel join / leave / move events. */
 export function register(client: Client): void {
@@ -25,6 +26,11 @@ export function register(client: Client): void {
           channel_name: newState.channel?.name ?? null,
         },
       });
+
+      // User-defined voice-join triggers (fired only on a fresh join).
+      if (newState.channel) {
+        runVoiceJoinTriggers(member, newState.channel);
+      }
     } else if (left && !joined) {
       captureForGuild({
         guildId: guild.id,

@@ -2,6 +2,7 @@ import { type Client, Events, type Message, MessageType } from "discord.js";
 
 import { captureForGuild, toPersonLike } from "../capture.js";
 import { channelProps, guildProps } from "../props.js";
+import { runMessageTriggers } from "../triggers.js";
 
 /**
  * Message events. We send metadata only — never the message text. Note that
@@ -30,6 +31,10 @@ export function register(client: Client): void {
         has_embed: message.embeds.length > 0,
       },
     });
+
+    // User-defined triggers (message + file sources) — independent of whether
+    // the built-in message_sent event is enabled.
+    runMessageTriggers(message);
   });
 
   client.on(Events.MessageUpdate, (_oldMessage, newMessage) => {

@@ -3,6 +3,7 @@ import { type Client, Events } from "discord.js";
 import { captureForGuild, toPersonLike } from "../capture.js";
 import { guildProps } from "../props.js";
 import { nowMs } from "../time.js";
+import { runMemberJoinTriggers } from "../triggers.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,8 @@ export function register(client: Client): void {
         member_count: member.guild.memberCount,
       },
     });
+
+    runMemberJoinTriggers(member);
   });
 
   client.on(Events.GuildMemberRemove, (member) => {

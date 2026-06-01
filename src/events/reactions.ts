@@ -9,6 +9,7 @@ import {
 
 import { captureForGuild, toPersonLike } from "../capture.js";
 import { channelProps } from "../props.js";
+import { runReactionTriggers } from "../triggers.js";
 
 function emojiProps(
   reaction: MessageReaction | PartialMessageReaction
@@ -45,9 +46,11 @@ function handle(
 
 /** Reaction add/remove events. */
 export function register(client: Client): void {
-  client.on(Events.MessageReactionAdd, (reaction, user) =>
-    handle("reaction_added", reaction, user)
-  );
+  client.on(Events.MessageReactionAdd, (reaction, user) => {
+    handle("reaction_added", reaction, user);
+    // User-defined reaction triggers fire on add only.
+    runReactionTriggers(reaction, user);
+  });
   client.on(Events.MessageReactionRemove, (reaction, user) =>
     handle("reaction_removed", reaction, user)
   );
