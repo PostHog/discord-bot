@@ -27,8 +27,26 @@ Discord event → handler → captureForGuild() → that guild's PostHog project
 `message_sent`, `message_edited`, `message_deleted`, `member_joined`,
 `member_left`, `member_banned`, `reaction_added`, `reaction_removed`,
 `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`,
-`thread_created`. Each carries `guild_*` / `channel_*` metadata — see
-`src/events-catalog.ts` and the handlers in `src/events/`.
+`thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*`
+metadata — see `src/events-catalog.ts` and the handlers in `src/events/`.
+
+### `server_snapshot` — point-in-time server totals
+
+Discord's **Server Insights** dashboard isn't exposed to bots, but you don't
+need it: the flow events above let PostHog reproduce (and exceed) its growth,
+churn, retention, and activity charts. The one thing gateway events don't give
+you is *totals at a moment in time*, so `server_snapshot` fills that gap. When
+enabled, the bot periodically (default **every 24 h**, set
+`SNAPSHOT_INTERVAL_HOURS`) emits one event per server with:
+
+`member_count`, `online_count` (Discord's approximate counts — no Presence
+intent needed), `channel_count`, `role_count`, `boost_count`, `premium_tier`,
+`emoji_count`, `sticker_count`.
+
+Graph these in PostHog for "members / online / boosts over time" — the Insights
+overview tiles, but trendable. It's opt-in via `/analytics events` like any
+other event, fires once on startup for an immediate data point, and only does
+the per-guild API call when a server has it enabled.
 
 ## Slash commands (require the **Manage Server** permission)
 
@@ -175,6 +193,7 @@ src/
   posthogPool.ts     pooled posthog-node clients per destination
   capture.ts         capture gates (built-in + captureCustomEvent for triggers)
   triggers.ts        trigger matching engine + runners
+  snapshots.ts       periodic server_snapshot scheduler
   props.ts           shared guild/channel property builders
   index.ts           client setup, handler wiring, graceful shutdown
   deploy-commands.ts slash-command registration script

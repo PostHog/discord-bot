@@ -14,7 +14,8 @@ export type EventCategory =
   | "members"
   | "reactions"
   | "voice"
-  | "threads";
+  | "threads"
+  | "server";
 
 export interface CatalogEntry {
   key: string;
@@ -103,6 +104,13 @@ export const EVENT_CATALOG: readonly CatalogEntry[] = [
     label: "Thread created",
     description: "A thread was created",
     category: "threads",
+  },
+  // Server (periodic snapshot, not a gateway event)
+  {
+    key: "server_snapshot",
+    label: "Server snapshot",
+    description: "Periodic totals: members, online, channels, roles, boosts",
+    category: "server",
   },
 ] as const;
 
