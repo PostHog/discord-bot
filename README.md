@@ -146,9 +146,11 @@ have up to 50 triggers.
 
 In any server the bot has joined, an admin runs:
 
-1. `/analytics setup` → paste the PostHog **project** API key and host
-   (defaults to `https://us.i.posthog.com`; use `https://eu.i.posthog.com` for
-   EU or your self-hosted URL).
+1. `/analytics setup` → paste the PostHog **project** API key and host. Pass the
+   optional `region` choice (`us` / `eu` / `custom`) to pre-fill the host field —
+   `us` (`us.i.posthog.com`) is the default, `eu` is `eu.i.posthog.com`, or leave
+   `custom` to type a self-hosted URL. The key and host must be from the same
+   region (an EU key only works against the EU host).
 2. `/analytics test` → confirm the event lands in PostHog's Activity feed.
 3. `/analytics events` → tick the events to track.
 

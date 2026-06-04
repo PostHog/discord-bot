@@ -15,6 +15,12 @@ export const SETUP_MODAL_ID = "analytics:setup";
 const FIELD_KEY = "posthog_key";
 const FIELD_HOST = "posthog_host";
 
+/** Hosts for the `region` convenience option. US is the default. */
+const REGION_HOSTS: Record<string, string> = {
+  us: DEFAULT_POSTHOG_HOST,
+  eu: "https://eu.i.posthog.com",
+};
+
 /** `/analytics setup` → pop a modal pre-filled with any existing values. */
 export async function handleSetupCommand(
   interaction: ChatInputCommandInteraction
@@ -22,6 +28,14 @@ export async function handleSetupCommand(
   const existing = interaction.guildId
     ? readGuildConfig(interaction.guildId)
     : null;
+
+  // Optional region picker pre-fills the host field. "custom" (or none) keeps
+  // the existing/default host so the admin can type their own.
+  const region = interaction.options.getString("region");
+  const regionHost =
+    region && region !== "custom" ? REGION_HOSTS[region] : undefined;
+  const hostDefault =
+    regionHost ?? existing?.posthogHost ?? DEFAULT_POSTHOG_HOST;
 
   const keyInput = new TextInputBuilder()
     .setCustomId(FIELD_KEY)
@@ -39,7 +53,7 @@ export async function handleSetupCommand(
     .setPlaceholder(DEFAULT_POSTHOG_HOST)
     .setStyle(TextInputStyle.Short)
     .setRequired(true)
-    .setValue(existing?.posthogHost ?? DEFAULT_POSTHOG_HOST);
+    .setValue(hostDefault);
 
   const modal = new ModalBuilder()
     .setCustomId(SETUP_MODAL_ID)

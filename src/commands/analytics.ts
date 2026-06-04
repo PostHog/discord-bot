@@ -18,6 +18,16 @@ export const analyticsCommand = new SlashCommandBuilder()
     sub
       .setName("setup")
       .setDescription("Connect this server to a PostHog project (key + host)")
+      .addStringOption((o) =>
+        o
+          .setName("region")
+          .setDescription("Pre-fill the PostHog host (default: US)")
+          .addChoices(
+            { name: "us", value: "us" },
+            { name: "eu", value: "eu" },
+            { name: "custom", value: "custom" }
+          )
+      )
   )
   .addSubcommand((sub) =>
     sub
