@@ -3,8 +3,8 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { readGuildConfig, setOptions } from "../db.js";
-import { nowMs } from "../time.js";
+import { readGuildConfig, setOptions } from "@/db.js";
+import { nowMs } from "@/time.js";
 
 /** `/analytics options` → update bot-filtering and message sampling. */
 export async function handleOptionsCommand(

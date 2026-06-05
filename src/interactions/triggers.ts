@@ -14,8 +14,8 @@ import {
   type Trigger,
   type TriggerConditions,
   type TriggerSource,
-} from "../db.js";
-import { nowMs } from "../time.js";
+} from "@/db.js";
+import { nowMs } from "@/time.js";
 
 const EPHEMERAL = { flags: MessageFlags.Ephemeral } as const;
 

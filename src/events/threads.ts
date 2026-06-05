@@ -1,7 +1,7 @@
 import { type Client, Events } from "discord.js";
 
-import { captureForGuild } from "../capture.js";
-import { guildProps } from "../props.js";
+import { captureForGuild } from "@/capture.js";
+import { guildProps } from "@/props.js";
 
 /** Thread creation events. */
 export function register(client: Client): void {

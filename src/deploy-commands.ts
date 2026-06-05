@@ -1,7 +1,7 @@
 import { REST, Routes } from "discord.js";
 
-import { analyticsCommand } from "./commands/analytics.js";
-import { config } from "./config.js";
+import { analyticsCommand } from "@/commands/analytics.js";
+import { config } from "@/config.js";
 
 /**
  * One-off script to register slash commands with Discord.

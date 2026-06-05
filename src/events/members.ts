@@ -1,9 +1,9 @@
 import { type Client, Events } from "discord.js";
 
-import { captureForGuild, toPersonLike } from "../capture.js";
-import { guildProps } from "../props.js";
-import { nowMs } from "../time.js";
-import { runMemberJoinTriggers } from "../triggers.js";
+import { captureForGuild, toPersonLike } from "@/capture.js";
+import { guildProps } from "@/props.js";
+import { nowMs } from "@/time.js";
+import { runMemberJoinTriggers } from "@/triggers.js";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

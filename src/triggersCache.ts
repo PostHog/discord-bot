@@ -1,5 +1,4 @@
-import type { Trigger } from "./db.js";
-import { listTriggers } from "./db.js";
+import { listTriggers, type Trigger  } from "@/db.js";
 
 /**
  * In-memory cache of each guild's triggers, so the hot per-event path (every

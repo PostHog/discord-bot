@@ -7,9 +7,9 @@ import {
   StringSelectMenuOptionBuilder,
 } from "discord.js";
 
-import { readGuildConfig, setEnabledEvents } from "../db.js";
-import { EVENT_CATALOG } from "../events-catalog.js";
-import { nowMs } from "../time.js";
+import { readGuildConfig, setEnabledEvents } from "@/db.js";
+import { EVENT_CATALOG } from "@/events-catalog.js";
+import { nowMs } from "@/time.js";
 
 export const EVENTS_SELECT_ID = "analytics:events";
 

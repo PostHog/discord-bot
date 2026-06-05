@@ -1,8 +1,8 @@
 import { type Client, Events, type VoiceState } from "discord.js";
 
-import { captureForGuild, toPersonLike } from "../capture.js";
-import { guildProps } from "../props.js";
-import { runVoiceJoinTriggers } from "../triggers.js";
+import { captureForGuild, toPersonLike } from "@/capture.js";
+import { guildProps } from "@/props.js";
+import { runVoiceJoinTriggers } from "@/triggers.js";
 
 /** Voice channel join / leave / move events. */
 export function register(client: Client): void {

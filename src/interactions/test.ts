@@ -3,8 +3,8 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { readGuildConfig } from "../db.js";
-import { getPostHogClient } from "../posthogPool.js";
+import { readGuildConfig } from "@/db.js";
+import { getPostHogClient } from "@/posthogPool.js";
 
 /**
  * `/analytics test` → send a real `analytics_test` event to the guild's PostHog

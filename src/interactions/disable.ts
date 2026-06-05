@@ -3,7 +3,7 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { clearConfig } from "../db.js";
+import { clearConfig } from "@/db.js";
 
 /** `/analytics disable` → clear all config; the bot goes silent for this guild. */
 export async function handleDisableCommand(

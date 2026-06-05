@@ -15,7 +15,7 @@ vi.mock("posthog-node", () => ({
   },
 }));
 
-const { getPostHogClient, shutdownAll } = await import("../src/posthogPool.js");
+const { getPostHogClient, shutdownAll } = await import("@/posthogPool.js");
 
 afterEach(() => {
   instances.length = 0;

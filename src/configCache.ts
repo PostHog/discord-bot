@@ -1,5 +1,4 @@
-import type { GuildConfig } from "./db.js";
-import { readGuildConfig } from "./db.js";
+import { readGuildConfig, type GuildConfig } from "@/db.js";
 
 /**
  * In-memory cache of per-guild config so the hot per-event path (which can fire

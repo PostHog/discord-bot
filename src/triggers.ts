@@ -8,10 +8,10 @@ import type {
   VoiceBasedChannel,
 } from "discord.js";
 
-import { captureCustomEvent, toPersonLike } from "./capture.js";
-import type { Trigger, TriggerConditions } from "./db.js";
-import { channelProps, guildProps } from "./props.js";
-import { getGuildTriggers } from "./triggersCache.js";
+import { captureCustomEvent, toPersonLike } from "@/capture.js";
+import type { Trigger, TriggerConditions } from "@/db.js";
+import { channelProps, guildProps } from "@/props.js";
+import { getGuildTriggers } from "@/triggersCache.js";
 
 /** A trigger that matched, plus the auto-context describing *what* matched. */
 interface TriggerMatch {

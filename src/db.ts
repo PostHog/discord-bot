@@ -2,10 +2,10 @@ import Database from "better-sqlite3";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 
-import { config } from "./config.js";
-import { invalidateConfigCache } from "./configCache.js";
-import { invalidateTriggersCache } from "./triggersCache.js";
-import { sanitizeEventKeys } from "./events-catalog.js";
+import { config } from "@/config.js";
+import { invalidateConfigCache } from "@/configCache.js";
+import { invalidateTriggersCache } from "@/triggersCache.js";
+import { sanitizeEventKeys } from "@/events-catalog.js";
 
 /**
  * Per-guild configuration as stored in SQLite. `posthogApiKey === null` means

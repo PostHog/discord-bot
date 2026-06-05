@@ -6,7 +6,7 @@ import {
   getCatalogEntry,
   isValidEventKey,
   sanitizeEventKeys,
-} from "../src/events-catalog.js";
+} from "@/events-catalog.js";
 
 describe("events-catalog", () => {
   it("exposes a key for every catalog entry", () => {

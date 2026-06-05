@@ -1,8 +1,8 @@
 import type { User } from "discord.js";
 
-import { getGuildConfig } from "./configCache.js";
-import type { GuildConfig } from "./db.js";
-import { getPostHogClient } from "./posthogPool.js";
+import { getGuildConfig } from "@/configCache.js";
+import type { GuildConfig } from "@/db.js";
+import { getPostHogClient } from "@/posthogPool.js";
 
 /** Shape of the bits of a Discord user we turn into PostHog person properties. */
 interface PersonLike {

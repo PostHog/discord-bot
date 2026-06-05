@@ -4,22 +4,22 @@ import {
   PermissionFlagsBits,
 } from "discord.js";
 
-import { handleDisableCommand } from "./disable.js";
-import { EVENTS_SELECT_ID, handleEventsCommand, handleEventsSelect } from "./events.js";
-import { handleOptionsCommand } from "./options.js";
+import { handleDisableCommand } from "@/interactions/disable.js";
+import { EVENTS_SELECT_ID, handleEventsCommand, handleEventsSelect } from "@/interactions/events.js";
+import { handleOptionsCommand } from "@/interactions/options.js";
 import {
   SETUP_MODAL_ID,
   handleSetupCommand,
   handleSetupModal,
-} from "./setup.js";
-import { handleStatusCommand } from "./status.js";
-import { handleTestCommand } from "./test.js";
+} from "@/interactions/setup.js";
+import { handleStatusCommand } from "@/interactions/status.js";
+import { handleTestCommand } from "@/interactions/test.js";
 import {
   handleTriggerAdd,
   handleTriggerList,
   handleTriggerRemove,
   handleTriggerToggle,
-} from "./triggers.js";
+} from "@/interactions/triggers.js";
 
 /**
  * Single entry point for `Events.InteractionCreate`. Dispatches slash-command

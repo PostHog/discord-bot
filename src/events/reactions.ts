@@ -7,9 +7,9 @@ import {
   type User,
 } from "discord.js";
 
-import { captureForGuild, toPersonLike } from "../capture.js";
-import { channelProps } from "../props.js";
-import { runReactionTriggers } from "../triggers.js";
+import { captureForGuild, toPersonLike } from "@/capture.js";
+import { channelProps } from "@/props.js";
+import { runReactionTriggers } from "@/triggers.js";
 
 function emojiProps(
   reaction: MessageReaction | PartialMessageReaction

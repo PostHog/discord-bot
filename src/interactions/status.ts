@@ -4,8 +4,8 @@ import {
   MessageFlags,
 } from "discord.js";
 
-import { countTriggers, readGuildConfig } from "../db.js";
-import { EVENT_CATALOG } from "../events-catalog.js";
+import { countTriggers, readGuildConfig } from "@/db.js";
+import { EVENT_CATALOG } from "@/events-catalog.js";
 
 /** Mask an API key so `/analytics status` never echoes it in full. */
 function maskKey(key: string): string {

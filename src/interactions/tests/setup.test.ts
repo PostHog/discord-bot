@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/db.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../src/db.js")>();
+vi.mock("@/db.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/db.js")>();
   return { ...actual, upsertPosthog: vi.fn() };
 });
 
-const { handleSetupCommand, handleSetupModal } = await import("../../src/interactions/setup.js");
-const { upsertPosthog } = await import("../../src/db.js");
+const { handleSetupCommand, handleSetupModal } = await import("@/interactions/setup.js");
+const { upsertPosthog } = await import("@/db.js");
 const upsertMock = vi.mocked(upsertPosthog);
 
 function modal(key: string, host: string) {

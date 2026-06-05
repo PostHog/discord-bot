@@ -1,31 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../../src/interactions/disable.js", () => ({ handleDisableCommand: vi.fn() }));
-vi.mock("../../src/interactions/events.js", () => ({
+vi.mock("@/interactions/disable.js", () => ({ handleDisableCommand: vi.fn() }));
+vi.mock("@/interactions/events.js", () => ({
   EVENTS_SELECT_ID: "analytics:events",
   handleEventsCommand: vi.fn(),
   handleEventsSelect: vi.fn(),
 }));
-vi.mock("../../src/interactions/options.js", () => ({ handleOptionsCommand: vi.fn() }));
-vi.mock("../../src/interactions/setup.js", () => ({
+vi.mock("@/interactions/options.js", () => ({ handleOptionsCommand: vi.fn() }));
+vi.mock("@/interactions/setup.js", () => ({
   SETUP_MODAL_ID: "analytics:setup",
   handleSetupCommand: vi.fn(),
   handleSetupModal: vi.fn(),
 }));
-vi.mock("../../src/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
-vi.mock("../../src/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
-vi.mock("../../src/interactions/triggers.js", () => ({
+vi.mock("@/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
+vi.mock("@/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
+vi.mock("@/interactions/triggers.js", () => ({
   handleTriggerAdd: vi.fn(),
   handleTriggerList: vi.fn(),
   handleTriggerRemove: vi.fn(),
   handleTriggerToggle: vi.fn(),
 }));
 
-const { routeInteraction } = await import("../../src/interactions/router.js");
-const { handleSetupCommand, handleSetupModal } = await import("../../src/interactions/setup.js");
-const { handleStatusCommand } = await import("../../src/interactions/status.js");
-const { handleEventsSelect } = await import("../../src/interactions/events.js");
-const { handleTriggerAdd } = await import("../../src/interactions/triggers.js");
+const { routeInteraction } = await import("@/interactions/router.js");
+const { handleSetupCommand, handleSetupModal } = await import("@/interactions/setup.js");
+const { handleStatusCommand } = await import("@/interactions/status.js");
+const { handleEventsSelect } = await import("@/interactions/events.js");
+const { handleTriggerAdd } = await import("@/interactions/triggers.js");
 
 function ix(over: Record<string, unknown> = {}) {
   const reply = vi.fn(async () => {});

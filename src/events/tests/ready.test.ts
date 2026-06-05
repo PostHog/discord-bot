@@ -10,10 +10,10 @@ const { getGuildConfig, getPostHogClient, groupIdentify } = vi.hoisted(() => {
   };
 });
 
-vi.mock("../../src/configCache.js", () => ({ getGuildConfig }));
-vi.mock("../../src/posthogPool.js", () => ({ getPostHogClient }));
+vi.mock("@/configCache.js", () => ({ getGuildConfig }));
+vi.mock("@/posthogPool.js", () => ({ getPostHogClient }));
 
-const { register } = await import("../../src/events/ready.js");
+const { register } = await import("@/events/ready.js");
 
 function readyClient(guilds: Array<{ id: string; name: string; memberCount: number }>) {
   const handlers = new Map<string, (...a: unknown[]) => void>();

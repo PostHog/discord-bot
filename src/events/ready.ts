@@ -1,7 +1,7 @@
 import { type Client, Events } from "discord.js";
 
-import { getGuildConfig } from "../configCache.js";
-import { getPostHogClient } from "../posthogPool.js";
+import { getGuildConfig } from "@/configCache.js";
+import { getPostHogClient } from "@/posthogPool.js";
 
 /**
  * On ready, log status and run a `groupIdentify` for every configured guild so

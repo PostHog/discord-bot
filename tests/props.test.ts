@@ -1,7 +1,7 @@
 import { ChannelType } from "discord.js";
 import { describe, expect, it } from "vitest";
 
-import { channelProps, guildProps } from "../src/props.js";
+import { channelProps, guildProps } from "@/props.js";
 
 // Minimal channel/guild shapes — the helpers only read id/name/type.
 function chan(type: ChannelType, id = "c1", name: string | null = "general") {

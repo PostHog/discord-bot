@@ -8,8 +8,8 @@ import {
   TextInputStyle,
 } from "discord.js";
 
-import { DEFAULT_POSTHOG_HOST, readGuildConfig, upsertPosthog } from "../db.js";
-import { nowMs } from "../time.js";
+import { DEFAULT_POSTHOG_HOST, readGuildConfig, upsertPosthog } from "@/db.js";
+import { nowMs } from "@/time.js";
 
 export const SETUP_MODAL_ID = "analytics:setup";
 const FIELD_KEY = "posthog_key";

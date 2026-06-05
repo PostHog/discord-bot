@@ -1,8 +1,8 @@
 import { type Client, Events, type Message, MessageType } from "discord.js";
 
-import { captureForGuild, toPersonLike } from "../capture.js";
-import { channelProps, guildProps } from "../props.js";
-import { runMessageTriggers } from "../triggers.js";
+import { captureForGuild, toPersonLike } from "@/capture.js";
+import { channelProps, guildProps } from "@/props.js";
+import { runMessageTriggers } from "@/triggers.js";
 
 /**
  * Message events. We send metadata only — never the message text. Note that

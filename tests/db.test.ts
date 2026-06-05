@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getGuildConfig, invalidateConfigCache } from "../src/configCache.js";
+import { getGuildConfig, invalidateConfigCache } from "@/configCache.js";
 import {
   addTrigger,
   clearConfig,
@@ -16,8 +16,8 @@ import {
   setTriggerEnabled,
   TriggerLimitError,
   upsertPosthog,
-} from "../src/db.js";
-import { getGuildTriggers } from "../src/triggersCache.js";
+} from "@/db.js";
+import { getGuildTriggers } from "@/triggersCache.js";
 
 const NOW = 1_700_000_000_000;
 

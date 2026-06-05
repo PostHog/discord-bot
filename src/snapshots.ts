@@ -1,8 +1,8 @@
 import { type Client, Events, type Guild } from "discord.js";
 
-import { captureForGuild } from "./capture.js";
-import { config } from "./config.js";
-import { getGuildConfig } from "./configCache.js";
+import { captureForGuild } from "@/capture.js";
+import { config } from "@/config.js";
+import { getGuildConfig } from "@/configCache.js";
 
 /**
  * Periodic server snapshot. Gateway events capture *flows* (joins, messages);
