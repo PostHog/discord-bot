@@ -30,7 +30,7 @@ export const EVENT_CATALOG: readonly CatalogEntry[] = [
   {
     key: "message_sent",
     label: "Message sent",
-    description: "A message was posted (metadata only, never the text)",
+    description: "A message was posted",
     category: "messages",
   },
   {
@@ -109,7 +109,7 @@ export const EVENT_CATALOG: readonly CatalogEntry[] = [
   {
     key: "server_snapshot",
     label: "Server snapshot",
-    description: "Periodic totals: members, online, channels, roles, boosts",
+    description: "Periodic count of members, online, channels, roles, and boosts",
     category: "server",
   },
 ] as const;

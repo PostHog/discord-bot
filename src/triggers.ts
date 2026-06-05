@@ -20,7 +20,7 @@ interface TriggerMatch {
 }
 
 // ---------------------------------------------------------------------------
-// Pure matchers (exported for unit testing)
+// Pure matchers
 // ---------------------------------------------------------------------------
 
 /** Channel filter passes if no channels are configured, or the id is in the set. */
