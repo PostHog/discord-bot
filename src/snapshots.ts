@@ -15,7 +15,7 @@ import { getGuildConfig } from "./configCache.js";
  */
 const SNAPSHOT_EVENT = "server_snapshot";
 
-async function snapshotGuild(guild: Guild): Promise<void> {
+export async function snapshotGuild(guild: Guild): Promise<void> {
   const cfg = getGuildConfig(guild.id);
   // Pre-gate here (as well as inside captureForGuild) so we skip the REST fetch
   // for guilds that aren't configured / haven't enabled snapshots.

@@ -137,7 +137,7 @@ docker run -d --env-file .env -v $(pwd)/data:/data discord-posthog-bot
 
 ## Tests
 
-[Vitest](https://vitest.dev) covers the logic-dense modules — trigger matching/evaluation, the capture gates, the SQLite repo, the events catalog, props, and the `/analytics trigger add` validation. DB tests run against an in-memory SQLite; Discord and PostHog are mocked, so no network or credentials are needed.
+[Vitest](https://vitest.dev) covers the bot end to end at the unit level: trigger matching/evaluation, the capture gates, the SQLite repo, the events catalog, props, the PostHog client pool, the periodic `server_snapshot`, every Discord event handler (`messages`/`members`/`reactions`/`voice`/`threads`/`ready`), and the interaction layer — the command router's permission gate and dispatch, `setup` host normalization + key validation, `status` key masking, and `trigger add` validation. DB tests run against an in-memory SQLite; Discord and PostHog are mocked, so no network or credentials are needed.
 
 ```bash
 npm test          # run once
