@@ -53,14 +53,28 @@ rsync -az --delete \
   -e "ssh $SSH_OPTS -o StrictHostKeyChecking=accept-new" \
   "$REPO_ROOT"/ "$TARGET:discord-bot/"
 
-echo "==> Installing deps, building, registering commands, starting service…"
+echo "==> Building (as hog), installing under a non-root user, starting service…"
+# Build in hog's home (it has the toolchain + your forwarded GitHub key), then
+# hand the app to a dedicated unprivileged user that actually runs the bot.
 "${SSH[@]}" '
   set -eu
   cd ~/discord-bot
   npm ci
   npm run build
   npm run deploy-commands            # register slash commands globally (once)
-  sudo cp deploy/hogland/discord-bot.service /etc/systemd/system/discord-bot.service
+
+  # Create a locked-down service user: system account, no sudo, no login shell.
+  sudo useradd --system --shell /usr/sbin/nologin --home-dir /opt/discord-bot discordbot 2>/dev/null || true
+
+  # Install the app where the service user owns it. --exclude data preserves the
+  # SQLite config (per-guild settings + triggers) across redeploys.
+  sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+  sudo mkdir -p /opt/discord-bot/data
+  sudo chown -R discordbot:discordbot /opt/discord-bot
+  sudo chmod 600 /opt/discord-bot/.env
+
+  # Install + start the service (runs as discordbot, not hog).
+  sudo cp /opt/discord-bot/deploy/hogland/discord-bot.service /etc/systemd/system/discord-bot.service
   sudo systemctl daemon-reload
   sudo systemctl enable --now discord-bot
   sleep 2

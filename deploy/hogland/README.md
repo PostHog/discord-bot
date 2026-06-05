@@ -13,16 +13,6 @@ If you want true hands-off 24/7, run it as a Kubernetes Deployment on the same
 EKS cluster instead (you already have a `Dockerfile`). Use Hogland for
 development, or for "good enough" hosting with the snapshot safety net below.
 
-## Quick test run (throwaway)
-
-```bash
-hogland run --dir . --name discord-bot -- sh -lc 'npm ci && npm run build && node dist/index.js'
-```
-
-Runs in a tmux session on a fresh box; detach with `C-b d`, reattach with
-`hogland run --name discord-bot`. Make sure `.env` exists locally first (it gets
-synced up). Lives only as long as the box.
-
 ## Durable-ish run (systemd + snapshot)
 
 1. Fill in `.env` at the repo root (`cp .env.example .env`, set `DISCORD_TOKEN`
@@ -35,8 +25,17 @@ synced up). Lives only as long as the box.
    ```
 
 The script creates a box (with `bootstrap.sh` installing Node 20 + rsync),
-syncs the code, builds, registers the slash commands, installs
-`discord-bot.service` under systemd (`Restart=always`), and snapshots the box.
+syncs the code, and builds it in the `hog` home (which has the toolchain and
+your forwarded GitHub key). It then **creates a dedicated, unprivileged
+`discordbot` user** — a system account with no sudo and no login shell — installs
+the app to `/opt/discord-bot` owned by that user, and runs
+`discord-bot.service` under systemd (`Restart=always`) **as `discordbot`, not as
+`hog`**. So a compromise of the bot process doesn't inherit `hog`'s passwordless
+sudo. Finally it snapshots the box.
+
+Per-guild config (settings + triggers) lives in `/opt/discord-bot/data` and is
+**preserved across redeploys** — re-running `deploy.sh` rsyncs new code but
+leaves the SQLite file in place.
 
 It assumes `ssh_command` looks like `ssh -A -p <port> hog@<ip>` — tweak the two
 `SSH_OPTS`/`TARGET` lines if your hogland prints a different shape.
@@ -68,5 +67,6 @@ box's SQLite file) so your restore point stays current.
 ## Files
 
 - `bootstrap.sh` — root pre-sshd setup (rsync, python3, Node 20).
-- `discord-bot.service` — systemd unit (`Restart=always`, runs as the `hog` user).
-- `deploy.sh` — one-shot create → sync → build → enable → snapshot.
+- `discord-bot.service` — systemd unit (`Restart=always`, runs as the dedicated
+  non-root `discordbot` user, with `NoNewPrivileges` + `ProtectSystem` hardening).
+- `deploy.sh` — one-shot create → sync → build → install-as-discordbot → enable → snapshot.
