@@ -27,8 +27,8 @@ PUB="$(cat "$PUBKEY_FILE")"
 
 echo "==> Creating hogbox (2 cpu / 1 GiB / 10 GiB)…"
 RESP="$(curl -sS -X POST "${AUTH[@]}" -H "Content-Type: application/json" \
-  -d "$(jq -n --arg pub "$PUB" --rawfile bs "$SCRIPT_DIR/bootstrap.sh" \
-    '{cpus:2,memory_mib:1024,disk_gib:10,disk_class:"mirrored",ssh_public_key:$pub,bootstrap:$bs}')" \
+  -d "$(jq -n --arg pub "$PUB" \
+    '{cpus:2,memory_mib:1024,disk_gib:10,disk_class:"mirrored",ssh_public_key:$pub}')" \
   "$HOST/v1/hogboxes")"
 
 BOXID="$(echo "$RESP" | jq -r '.id')"
@@ -45,6 +45,22 @@ echo "    ssh=$SSH_CMD"
 SSH_OPTS="$(echo "$SSH_CMD" | sed -E 's/^ssh //; s/ +hog@[^ ]+ *$//')"
 TARGET="$(echo "$SSH_CMD" | grep -oE 'hog@[^ ]+')"
 SSH=(ssh $SSH_OPTS -o StrictHostKeyChecking=accept-new "$TARGET")
+
+echo "==> Waiting for SSH, then installing prerequisites (Node 20, rsync)…"
+# The baseline rootfs lacks rsync and Node, so install them before we rsync the
+# code up. (Wait briefly since the box may still be booting.)
+for _ in $(seq 1 20); do
+  "${SSH[@]}" -o ConnectTimeout=5 true 2>/dev/null && break
+  sleep 3
+done
+"${SSH[@]}" '
+  set -eu
+  export DEBIAN_FRONTEND=noninteractive
+  sudo apt-get update -qq
+  sudo apt-get install -y -qq rsync python3
+  curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+  sudo apt-get install -y -qq nodejs
+'
 
 echo "==> Syncing code to $TARGET:~/discord-bot …"
 # NB: .env IS included (it carries the secrets the bot needs).

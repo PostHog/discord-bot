@@ -17,7 +17,7 @@ If you want true hands-off 24/7, run it as a Kubernetes Deployment on the same E
    ./deploy/hogland/deploy.sh
    ```
 
-The script creates a box (with `bootstrap.sh` installing Node 20 + rsync), syncs the code, and builds it in the `hog` home (which has the toolchain and your forwarded GitHub key). It then **creates a dedicated, unprivileged `discordbot` user** — a system account with no sudo and no login shell — installs the app to `/opt/discord-bot` owned by that user, and runs `discord-bot.service` under systemd (`Restart=always`) **as `discordbot`, not as `hog`**. So a compromise of the bot process doesn't inherit `hog`'s passwordless sudo. Finally it snapshots the box.
+The script creates a box, installs Node 20 + rsync over SSH, syncs the code, and builds it in the `hog` home (which has the toolchain and your forwarded GitHub key). It then **creates a dedicated, unprivileged `discordbot` user** — a system account with no sudo and no login shell — installs the app to `/opt/discord-bot` owned by that user, and runs `discord-bot.service` under systemd (`Restart=always`) **as `discordbot`, not as `hog`**. So a compromise of the bot process doesn't inherit `hog`'s passwordless sudo. Finally it snapshots the box.
 
 Per-guild config (settings + triggers) lives in `/opt/discord-bot/data` and is **preserved across redeploys** — re-running `deploy.sh` rsyncs new code but leaves the SQLite file in place.
 
@@ -46,6 +46,5 @@ A restored box resumes with full memory state; discord.js will notice the stale 
 
 ## Files
 
-- `bootstrap.sh` — root pre-sshd setup (rsync, python3, Node 20).
 - `discord-bot.service` — systemd unit (`Restart=always`, runs as the dedicated non-root `discordbot` user, with `NoNewPrivileges` + `ProtectSystem` hardening).
 - `deploy.sh` — one-shot create → sync → build → install-as-discordbot → enable → snapshot.
