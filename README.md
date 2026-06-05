@@ -126,3 +126,7 @@ src/
   interactions/      command / modal / select-menu handlers
   events/            Discord gateway event handlers
 ```
+
+## License
+
+[MIT](LICENSE) © PostHog, Inc.

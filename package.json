@@ -2,6 +2,7 @@
   "name": "discord-posthog-bot",
   "version": "0.1.0",
   "description": "A public, configurable Discord bot that streams server-event analytics to PostHog",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=20"
