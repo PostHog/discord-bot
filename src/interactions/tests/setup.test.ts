@@ -9,74 +9,74 @@ const { handleSetupCommand, handleSetupModal } = await import("@/interactions/se
 const { upsertPosthog } = await import("@/db.js");
 const upsertMock = vi.mocked(upsertPosthog);
 
-function modal(key: string, host: string) {
+// The modal carries the region in its custom id (analytics:setup:<region>); the
+// modal itself only has the key field.
+function modal(key: string, region = "us") {
   const reply = vi.fn();
   const interaction = {
     guildId: "g1",
-    fields: {
-      getTextInputValue: (f: string) => (f === "posthog_key" ? key : host),
-    },
+    customId: `analytics:setup:${region}`,
+    fields: { getTextInputValue: () => key },
     reply,
   };
   return interaction;
-}
-
-function fieldValue(json: { components?: Array<{ components?: Array<{ custom_id?: string; value?: string }> }> }, id: string) {
-  for (const row of json.components ?? []) {
-    for (const comp of row.components ?? []) {
-      if (comp.custom_id === id) return comp.value;
-    }
-  }
-  return undefined;
 }
 
 beforeEach(() => vi.clearAllMocks());
 
 describe("handleSetupModal", () => {
   it("rejects a non-phc key", async () => {
-    const i = modal("sk_live_nope", "https://us.i.posthog.com");
+    const i = modal("sk_live_nope");
     await handleSetupModal(i as never);
     expect(upsertMock).not.toHaveBeenCalled();
     expect((i.reply.mock.calls[0][0] as { content: string }).content).toContain("project");
   });
 
-  it("rejects an unparseable host", async () => {
-    const i = modal("phc_ok", "");
+  it("stores the key against the US cloud host", async () => {
+    const i = modal("phc_ok", "us");
     await handleSetupModal(i as never);
-    expect(upsertMock).not.toHaveBeenCalled();
-    expect((i.reply.mock.calls[0][0] as { content: string }).content).toContain("valid host");
+    expect(upsertMock).toHaveBeenCalledWith("g1", "phc_ok", "https://us.i.posthog.com", expect.any(Number));
   });
 
-  it("normalizes a bare host and stores it", async () => {
-    const i = modal("phc_ok", "eu.i.posthog.com");
+  it("stores the key against the EU cloud host", async () => {
+    const i = modal("phc_ok", "eu");
     await handleSetupModal(i as never);
-    expect(upsertMock).toHaveBeenCalledWith("g1", "phc_ok", "https://eu.i.posthog.com", expect.any(Number));
+    expect(upsertMock.mock.calls[0][2]).toBe("https://eu.i.posthog.com");
   });
 
-  it("strips path/trailing slash to the origin", async () => {
-    const i = modal("phc_ok", "https://ph.example.com/ingest/");
+  it("falls back to the US host for an unknown/garbage region", async () => {
+    const i = modal("phc_ok", "evil-host.internal");
     await handleSetupModal(i as never);
-    expect(upsertMock.mock.calls[0][2]).toBe("https://ph.example.com");
+    expect(upsertMock.mock.calls[0][2]).toBe("https://us.i.posthog.com");
   });
 });
 
-describe("handleSetupCommand region prefill", () => {
+describe("handleSetupCommand", () => {
   function cmd(region: string | null) {
     const showModal = vi.fn();
     return { guildId: "g1", options: { getString: (n: string) => (n === "region" ? region : null) }, showModal };
   }
 
-  it("pre-fills the EU host", async () => {
+  it("encodes the chosen region in the modal custom id", async () => {
     const i = cmd("eu");
     await handleSetupCommand(i as never);
-    const json = i.showModal.mock.calls[0][0].toJSON();
-    expect(fieldValue(json, "posthog_host")).toBe("https://eu.i.posthog.com");
+    expect(i.showModal.mock.calls[0][0].toJSON().custom_id).toBe("analytics:setup:eu");
   });
 
-  it("defaults to the US host when no region is given", async () => {
+  it("defaults to us when no region is given", async () => {
     const i = cmd(null);
     await handleSetupCommand(i as never);
+    expect(i.showModal.mock.calls[0][0].toJSON().custom_id).toBe("analytics:setup:us");
+  });
+
+  it("does not expose a free-text host field", async () => {
+    const i = cmd("us");
+    await handleSetupCommand(i as never);
     const json = i.showModal.mock.calls[0][0].toJSON();
-    expect(fieldValue(json, "posthog_host")).toBe("https://us.i.posthog.com");
+    const customIds = (json.components ?? []).flatMap((r: { components?: Array<{ custom_id?: string }> }) =>
+      (r.components ?? []).map((c) => c.custom_id)
+    );
+    expect(customIds).toContain("posthog_key");
+    expect(customIds).not.toContain("posthog_host");
   });
 });

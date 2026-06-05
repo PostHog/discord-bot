@@ -85,7 +85,10 @@ export async function routeInteraction(interaction: Interaction): Promise<void> 
       return;
     }
 
-    if (interaction.isModalSubmit() && interaction.customId === SETUP_MODAL_ID) {
+    if (
+      interaction.isModalSubmit() &&
+      interaction.customId.startsWith(`${SETUP_MODAL_ID}:`)
+    ) {
       return await handleSetupModal(interaction);
     }
 

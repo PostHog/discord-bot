@@ -13,15 +13,23 @@ import { nowMs } from "@/time.js";
 
 export const SETUP_MODAL_ID = "analytics:setup";
 const FIELD_KEY = "posthog_key";
-const FIELD_HOST = "posthog_host";
 
-/** Hosts for the `region` convenience option. US is the default. */
+/**
+ * Region → cloud host. These are the ONLY destinations the bot will ever send
+ * to. There is intentionally no self-hosted / custom-host option: the host is
+ * never taken from admin free-text, which removes the SSRF surface entirely.
+ */
 const REGION_HOSTS: Record<string, string> = {
   us: DEFAULT_POSTHOG_HOST,
   eu: "https://eu.i.posthog.com",
 };
 
-/** `/analytics setup` → pop a modal pre-filled with any existing values. */
+/**
+ * `/analytics setup` → pop a modal asking only for the project API key. The
+ * destination is fixed to a PostHog Cloud region (us/eu) chosen via the `region`
+ * option and encoded in the modal's custom id (`analytics:setup:<region>`), so
+ * the bot can never be pointed at an arbitrary host.
+ */
 export async function handleSetupCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
@@ -29,13 +37,8 @@ export async function handleSetupCommand(
     ? readGuildConfig(interaction.guildId)
     : null;
 
-  // Optional region picker pre-fills the host field. "custom" (or none) keeps
-  // the existing/default host so the admin can type their own.
-  const region = interaction.options.getString("region");
-  const regionHost =
-    region && region !== "custom" ? REGION_HOSTS[region] : undefined;
-  const hostDefault =
-    regionHost ?? existing?.posthogHost ?? DEFAULT_POSTHOG_HOST;
+  const region = (interaction.options.getString("region") ?? "us").toLowerCase();
+  const safeRegion = region in REGION_HOSTS ? region : "us";
 
   const keyInput = new TextInputBuilder()
     .setCustomId(FIELD_KEY)
@@ -47,39 +50,17 @@ export async function handleSetupCommand(
     .setMaxLength(100);
   if (existing?.posthogApiKey) keyInput.setValue(existing.posthogApiKey);
 
-  const hostInput = new TextInputBuilder()
-    .setCustomId(FIELD_HOST)
-    .setLabel("PostHog host")
-    .setPlaceholder(DEFAULT_POSTHOG_HOST)
-    .setStyle(TextInputStyle.Short)
-    .setRequired(true)
-    .setValue(hostDefault);
-
   const modal = new ModalBuilder()
-    .setCustomId(SETUP_MODAL_ID)
-    .setTitle("Connect PostHog")
+    .setCustomId(`${SETUP_MODAL_ID}:${safeRegion}`)
+    .setTitle(`Connect PostHog (${safeRegion.toUpperCase()})`)
     .addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(keyInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(hostInput)
+      new ActionRowBuilder<TextInputBuilder>().addComponents(keyInput)
     );
 
   await interaction.showModal(modal);
 }
 
-function normalizeHost(raw: string): string | null {
-  let value = raw.trim();
-  if (value === "") return null;
-  if (!/^https?:\/\//i.test(value)) value = `https://${value}`;
-  try {
-    const url = new URL(value);
-    // Strip any trailing slash / path — posthog-node wants the bare origin.
-    return url.origin;
-  } catch {
-    return null;
-  }
-}
-
-/** Modal submit → validate and persist the PostHog key + host. */
+/** Modal submit → validate the key and persist it against the chosen region's host. */
 export async function handleSetupModal(
   interaction: ModalSubmitInteraction
 ): Promise<void> {
@@ -91,9 +72,11 @@ export async function handleSetupModal(
     return;
   }
 
+  // The region is encoded in the modal custom id; the host is therefore always
+  // a known PostHog Cloud URL, never admin-supplied free text.
+  const region = interaction.customId.split(":")[2] ?? "us";
+  const host = REGION_HOSTS[region] ?? DEFAULT_POSTHOG_HOST;
   const apiKey = interaction.fields.getTextInputValue(FIELD_KEY).trim();
-  const hostRaw = interaction.fields.getTextInputValue(FIELD_HOST);
-  const host = normalizeHost(hostRaw);
 
   if (!apiKey.startsWith("phc_")) {
     await interaction.reply({
@@ -101,14 +84,6 @@ export async function handleSetupModal(
         "❌ That doesn't look like a PostHog **project** API key. It should " +
         "start with `phc_`. You can find it in PostHog under " +
         "**Settings → Project → Project API key**.",
-      flags: MessageFlags.Ephemeral,
-    });
-    return;
-  }
-
-  if (!host) {
-    await interaction.reply({
-      content: `❌ "${hostRaw}" isn't a valid host URL. Example: \`${DEFAULT_POSTHOG_HOST}\``,
       flags: MessageFlags.Ephemeral,
     });
     return;

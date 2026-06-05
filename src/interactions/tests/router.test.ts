@@ -90,7 +90,7 @@ describe("routeInteraction dispatch", () => {
   });
 
   it("routes the setup modal submit", async () => {
-    const i = ix({ isModalSubmit: () => true, customId: "analytics:setup" });
+    const i = ix({ isModalSubmit: () => true, customId: "analytics:setup:us" });
     await routeInteraction(i as never);
     expect(handleSetupModal).toHaveBeenCalledTimes(1);
   });

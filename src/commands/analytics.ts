@@ -21,11 +21,10 @@ export const analyticsCommand = new SlashCommandBuilder()
       .addStringOption((o) =>
         o
           .setName("region")
-          .setDescription("Pre-fill the PostHog host (default: US)")
+          .setDescription("PostHog Cloud region (default: us)")
           .addChoices(
             { name: "us", value: "us" },
-            { name: "eu", value: "eu" },
-            { name: "custom", value: "custom" }
+            { name: "eu", value: "eu" }
           )
       )
   )

@@ -31,7 +31,7 @@ Graph these in PostHog for "members / online / boosts over time" — the Insight
 
 | Command | What it does |
 |---|---|
-| `/analytics setup` | Connect this server to a PostHog project (key + host, via a modal) |
+| `/analytics setup` | Connect this server to a PostHog project (region + project key, via a modal) |
 | `/analytics events` | Choose which events are sent (multi-select) |
 | `/analytics options` | Toggle bot filtering and message sampling |
 | `/analytics status` | Show the current config (the key is masked) |
@@ -110,7 +110,7 @@ Each fired event carries auto-context: channel info, what matched (`matched_term
 
 In any server the bot has joined, an admin runs:
 
-1. `/analytics setup` → paste the PostHog **project** API key and host. Pass the optional `region` choice (`us` / `eu` / `custom`) to pre-fill the host field — `us` (`us.i.posthog.com`) is the default, `eu` is `eu.i.posthog.com`, or leave `custom` to type a self-hosted URL. The key and host must be from the same region (an EU key only works against the EU host).
+1. `/analytics setup` → choose the `region` (`us` or `eu`, default `us`) and paste the PostHog **project** API key. The destination is fixed to that PostHog Cloud region — there is no custom/self-hosted host option, so the bot can only ever send to `us.i.posthog.com` or `eu.i.posthog.com`. Use the key from the matching region (an EU key only works against EU).
 2. `/analytics test` → confirm the event lands in PostHog's Activity feed.
 3. `/analytics events` → tick the events to track.
 
@@ -137,7 +137,7 @@ docker run -d --env-file .env -v $(pwd)/data:/data discord-posthog-bot
 
 ## Tests
 
-[Vitest](https://vitest.dev) covers the bot end to end at the unit level: trigger matching/evaluation, the capture gates, the SQLite repo, the events catalog, props, the PostHog client pool, the periodic `server_snapshot`, every Discord event handler (`messages`/`members`/`reactions`/`voice`/`threads`/`ready`), and the interaction layer — the command router's permission gate and dispatch, `setup` host normalization + key validation, `status` key masking, and `trigger add` validation. DB tests run against an in-memory SQLite; Discord and PostHog are mocked, so no network or credentials are needed.
+[Vitest](https://vitest.dev) covers the bot end to end at the unit level: trigger matching/evaluation, the capture gates, the SQLite repo, the events catalog, props, the PostHog client pool, the periodic `server_snapshot`, every Discord event handler (`messages`/`members`/`reactions`/`voice`/`threads`/`ready`), and the interaction layer — the command router's permission gate and dispatch, `setup` region/key validation, `status` key masking, and `trigger add` validation. DB tests run against an in-memory SQLite; Discord and PostHog are mocked, so no network or credentials are needed.
 
 ```bash
 npm test          # run once
