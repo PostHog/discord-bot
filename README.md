@@ -1,9 +1,6 @@
 # Discord → PostHog analytics bot
 
-A public, multi-tenant Discord bot that streams server-event analytics to
-**PostHog**. Anyone can add it to their server and configure it entirely
-in-Discord with slash commands — **each server routes to its own PostHog
-project**. The bot sends **metadata only** and never stores message text.
+A public, multi-tenant Discord bot that streams server-event analytics to **PostHog**. Anyone can add it to their server and configure it entirely in-Discord with slash commands — **each server routes to its own PostHog project**. The bot sends **metadata only** and never stores message text.
 
 ## How it works
 
@@ -13,40 +10,22 @@ Discord event → handler → captureForGuild() → that guild's PostHog project
                   gate: configured? event enabled? bot filter? sampling?
 ```
 
-- **distinct_id** = the Discord user id, so every Discord user becomes a PostHog
-  person (with `discord_username` / `discord_global_name` person properties).
-- **Group analytics**: every event is attached to a `discord_server` group keyed
-  on the guild id, so you can break analytics down per server.
-- **Nothing is sent until an admin runs `/analytics setup`** and enables event
-  types — a freshly-added server is silent by default.
-- Per-guild config (PostHog key, host, enabled events, options) is stored in
-  **SQLite**. A client pool keeps one `posthog-node` client per destination.
+- **distinct_id** = the Discord user id, so every Discord user becomes a PostHog person (with `discord_username` / `discord_global_name` person properties).
+- **Group analytics**: every event is attached to a `discord_server` group keyed on the guild id, so you can break analytics down per server.
+- **Nothing is sent until an admin runs `/analytics setup`** and enables event types — a freshly-added server is silent by default.
+- Per-guild config (PostHog key, host, enabled events, options) is stored in **SQLite**. A client pool keeps one `posthog-node` client per destination.
 
 ## Supported events
 
-`message_sent`, `message_edited`, `message_deleted`, `member_joined`,
-`member_left`, `member_banned`, `reaction_added`, `reaction_removed`,
-`voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`,
-`thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*`
-metadata — see `src/events-catalog.ts` and the handlers in `src/events/`.
+`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata — see `src/events-catalog.ts` and the handlers in `src/events/`.
 
 ### `server_snapshot` — point-in-time server totals
 
-Discord's **Server Insights** dashboard isn't exposed to bots, but you don't
-need it: the flow events above let PostHog reproduce (and exceed) its growth,
-churn, retention, and activity charts. The one thing gateway events don't give
-you is *totals at a moment in time*, so `server_snapshot` fills that gap. When
-enabled, the bot periodically (default **every 24 h**, set
-`SNAPSHOT_INTERVAL_HOURS`) emits one event per server with:
+Discord's **Server Insights** dashboard isn't exposed to bots, but you don't need it: the flow events above let PostHog reproduce (and exceed) its growth, churn, retention, and activity charts. The one thing gateway events don't give you is *totals at a moment in time*, so `server_snapshot` fills that gap. When enabled, the bot periodically (default **every 24 h**, set `SNAPSHOT_INTERVAL_HOURS`) emits one event per server with:
 
-`member_count`, `online_count` (Discord's approximate counts — no Presence
-intent needed), `channel_count`, `role_count`, `boost_count`, `premium_tier`,
-`emoji_count`, `sticker_count`.
+`member_count`, `online_count` (Discord's approximate counts — no Presence intent needed), `channel_count`, `role_count`, `boost_count`, `premium_tier`, `emoji_count`, `sticker_count`.
 
-Graph these in PostHog for "members / online / boosts over time" — the Insights
-overview tiles, but trendable. It's opt-in via `/analytics events` like any
-other event, fires once on startup for an immediate data point, and only does
-the per-guild API call when a server has it enabled.
+Graph these in PostHog for "members / online / boosts over time" — the Insights overview tiles, but trendable. It's opt-in via `/analytics events` like any other event, fires once on startup for an immediate data point, and only does the per-guild API call when a server has it enabled.
 
 ## Slash commands (require the **Manage Server** permission)
 
@@ -63,18 +42,13 @@ the per-guild API call when a server has it enabled.
 | `/analytics trigger remove <id>` | Delete a trigger |
 | `/analytics trigger toggle <id> <enabled>` | Enable/disable a trigger |
 
-The PostHog **project** API key (`phc_…`) is a publishable, capture-only key —
-it cannot read data — so storing it per guild is low-risk.
+The PostHog **project** API key (`phc_…`) is a publishable, capture-only key — it cannot read data — so storing it per guild is low-risk.
 
 ## Custom event triggers
 
-Beyond the built-in catalog, server admins can define **triggers**: when Discord
-activity matches a rule, the bot emits a **custom-named** PostHog event. Triggers
-fire independently of which built-in events are enabled (they only need the
-server to be connected via `/analytics setup`).
+Beyond the built-in catalog, server admins can define **triggers**: when Discord activity matches a rule, the bot emits a **custom-named** PostHog event. Triggers fire independently of which built-in events are enabled (they only need the server to be connected via `/analytics setup`).
 
-A trigger has a **source** and optional **conditions** (all conditions must
-match):
+A trigger has a **source** and optional **conditions** (all conditions must match):
 
 | Source | Fires when… | Conditions |
 |---|---|---|
@@ -99,27 +73,17 @@ Examples:
 /analytics trigger add name:Tickets event_name:ticket_opened source:reaction emoji:🎫
 ```
 
-Each fired event carries auto-context: channel info, what matched
-(`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` /
-`trigger_source`, and the acting Discord user as the PostHog person.
+Each fired event carries auto-context: channel info, what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
 
-**Matching is simple and case-insensitive** (`contains` / `keywords` /
-`starts_with`) — no regex. **Content, keyword, and file matching require the
-Message Content intent** (the `trigger add` reply reminds you); channel-only,
-reaction, member-join, and voice-join triggers work without it. Each server can
-have up to 50 triggers.
+**Matching is simple and case-insensitive** (`contains` / `keywords` / `starts_with`) — no regex. **Content, keyword, and file matching require the Message Content intent** (the `trigger add` reply reminds you); channel-only, reaction, member-join, and voice-join triggers work without it. Each server can have up to 50 triggers.
 
 ## Setup (self-hosting)
 
 1. **Create the Discord app** at <https://discord.com/developers/applications>:
    - **Bot → Token** → `DISCORD_TOKEN`
    - **General Information → Application ID** → `DISCORD_CLIENT_ID`
-   - **Bot → Privileged Gateway Intents**: enable **Server Members Intent**
-     (required for join/leave). Enable **Message Content Intent** too if you want
-     `message_length` / mention / attachment counts (see note below).
-2. **Invite the bot** with the OAuth2 URL generator — scopes `bot` +
-   `applications.commands`, with read permissions (View Channels, Read Message
-   History) plus Send Messages (for the onboarding hint). Example:
+   - **Bot → Privileged Gateway Intents**: enable **Server Members Intent** (required for join/leave). Enable **Message Content Intent** too if you want `message_length` / mention / attachment counts (see note below).
+2. **Invite the bot** with the OAuth2 URL generator — scopes `bot` + `applications.commands`, with read permissions (View Channels, Read Message History) plus Send Messages (for the onboarding hint). Example:
    ```
    https://discord.com/oauth2/authorize?client_id=<DISCORD_CLIENT_ID>&scope=bot+applications.commands&permissions=68608
    ```
@@ -146,37 +110,25 @@ have up to 50 triggers.
 
 In any server the bot has joined, an admin runs:
 
-1. `/analytics setup` → paste the PostHog **project** API key and host. Pass the
-   optional `region` choice (`us` / `eu` / `custom`) to pre-fill the host field —
-   `us` (`us.i.posthog.com`) is the default, `eu` is `eu.i.posthog.com`, or leave
-   `custom` to type a self-hosted URL. The key and host must be from the same
-   region (an EU key only works against the EU host).
+1. `/analytics setup` → paste the PostHog **project** API key and host. Pass the optional `region` choice (`us` / `eu` / `custom`) to pre-fill the host field — `us` (`us.i.posthog.com`) is the default, `eu` is `eu.i.posthog.com`, or leave `custom` to type a self-hosted URL. The key and host must be from the same region (an EU key only works against the EU host).
 2. `/analytics test` → confirm the event lands in PostHog's Activity feed.
 3. `/analytics events` → tick the events to track.
 
 ## Privileged intents (important for a public bot)
 
-Both `GuildMembers` and `MessageContent` are **privileged**. Once the bot is in
-**100+ servers**, Discord requires the app to be **verified** and these intents
-approved.
+Both `GuildMembers` and `MessageContent` are **privileged**. Once the bot is in **100+ servers**, Discord requires the app to be **verified** and these intents approved.
 
 - **`GuildMembers`** is required for `member_joined` / `member_left`.
-- **`MessageContent`** is used *only* to derive metadata (length, mention and
-  attachment counts) — never to read or store text. The bot **degrades
-  gracefully** without it: `message_sent` still fires (so per-channel/per-user
-  message counts stay accurate); only the content-derived numbers read as `0`.
-  If you'd rather not request it, leave it disabled.
+- **`MessageContent`** is used *only* to derive metadata (length, mention and attachment counts) — never to read or store text. The bot **degrades gracefully** without it: `message_sent` still fires (so per-channel/per-user message counts stay accurate); only the content-derived numbers read as `0`. If you'd rather not request it, leave it disabled.
 
 ## Privacy
 
 - Raw message text is **never** sent to PostHog — only metadata.
-- Configuration (including the PostHog key) is only ever shown to admins via
-  **ephemeral** replies, and the key is masked in `/analytics status`.
+- Configuration (including the PostHog key) is only ever shown to admins via **ephemeral** replies, and the key is masked in `/analytics status`.
 
 ## Deployment
 
-A `Dockerfile` is included. Mount a volume at `/data` so the SQLite config
-survives restarts:
+A `Dockerfile` is included. Mount a volume at `/data` so the SQLite config survives restarts:
 
 ```bash
 docker build -t discord-posthog-bot .
