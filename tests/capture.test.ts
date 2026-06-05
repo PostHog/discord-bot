@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { GuildConfig } from "./db.js";
+import type { GuildConfig } from "../src/db.js";
 
 const { captureSpy, getPostHogClient, getGuildConfig } = vi.hoisted(() => {
   const captureSpy = vi.fn();
@@ -11,10 +11,10 @@ const { captureSpy, getPostHogClient, getGuildConfig } = vi.hoisted(() => {
   };
 });
 
-vi.mock("./posthogPool.js", () => ({ getPostHogClient }));
-vi.mock("./configCache.js", () => ({ getGuildConfig }));
+vi.mock("../src/posthogPool.js", () => ({ getPostHogClient }));
+vi.mock("../src/configCache.js", () => ({ getGuildConfig }));
 
-const { captureForGuild, captureCustomEvent } = await import("./capture.js");
+const { captureForGuild, captureCustomEvent } = await import("../src/capture.js");
 
 function config(partial: Partial<GuildConfig> = {}): GuildConfig {
   return {

@@ -11,7 +11,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["tests/**/*.test.ts"],
     // config.ts requires these at import time; db tests use an in-memory SQLite.
     env: {
       DISCORD_BOT_TOKEN: "test-token",

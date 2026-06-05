@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../db.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../db.js")>();
+vi.mock("../../src/db.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/db.js")>();
   return { ...actual, readGuildConfig: vi.fn(), countTriggers: vi.fn(() => 0) };
 });
 
-const { handleStatusCommand } = await import("./status.js");
-const { readGuildConfig, countTriggers } = await import("../db.js");
+const { handleStatusCommand } = await import("../../src/interactions/status.js");
+const { readGuildConfig, countTriggers } = await import("../../src/db.js");
 const readMock = vi.mocked(readGuildConfig);
 const countMock = vi.mocked(countTriggers);
 

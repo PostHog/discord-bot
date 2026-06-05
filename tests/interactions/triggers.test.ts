@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Spy on addTrigger but keep the real TriggerLimitError class (so the handler's
 // instanceof check works) and everything else.
-vi.mock("../db.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../db.js")>();
+vi.mock("../../src/db.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../src/db.js")>();
   return { ...actual, addTrigger: vi.fn(() => 5) };
 });
 
-const { handleTriggerAdd } = await import("./triggers.js");
-const { addTrigger, TriggerLimitError } = await import("../db.js");
+const { handleTriggerAdd } = await import("../../src/interactions/triggers.js");
+const { addTrigger, TriggerLimitError } = await import("../../src/db.js");
 const addTriggerMock = vi.mocked(addTrigger);
 
 interface ReplyArg {

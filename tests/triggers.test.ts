@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { Trigger } from "./db.js";
+import type { Trigger } from "../src/db.js";
 
 // Mock the cache (source of triggers) and the capture sink so these tests stay
 // pure — no real DB, PostHog client, or env needed.
 const { getGuildTriggers } = vi.hoisted(() => ({ getGuildTriggers: vi.fn() }));
 const { captureCustomEvent } = vi.hoisted(() => ({ captureCustomEvent: vi.fn() }));
 
-vi.mock("./triggersCache.js", () => ({ getGuildTriggers }));
-vi.mock("./capture.js", () => ({
+vi.mock("../src/triggersCache.js", () => ({ getGuildTriggers }));
+vi.mock("../src/capture.js", () => ({
   captureCustomEvent,
   toPersonLike: (u: { id: string; username: string; globalName?: string | null; bot?: boolean }) => ({
     id: u.id,
@@ -29,7 +29,7 @@ const {
   evaluateVoiceJoin,
   runMessageTriggers,
   runReactionTriggers,
-} = await import("./triggers.js");
+} = await import("../src/triggers.js");
 
 function trigger(partial: Partial<Trigger>): Trigger {
   return {

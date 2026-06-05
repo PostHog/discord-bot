@@ -2,9 +2,9 @@ import { Events } from "discord.js";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { captureForGuild } = vi.hoisted(() => ({ captureForGuild: vi.fn() }));
-vi.mock("../capture.js", () => ({ captureForGuild }));
+vi.mock("../../src/capture.js", () => ({ captureForGuild }));
 
-const { register } = await import("./threads.js");
+const { register } = await import("../../src/events/threads.js");
 
 function client() {
   const handlers = new Map<string, (...a: unknown[]) => void>();

@@ -1,31 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("./disable.js", () => ({ handleDisableCommand: vi.fn() }));
-vi.mock("./events.js", () => ({
+vi.mock("../../src/interactions/disable.js", () => ({ handleDisableCommand: vi.fn() }));
+vi.mock("../../src/interactions/events.js", () => ({
   EVENTS_SELECT_ID: "analytics:events",
   handleEventsCommand: vi.fn(),
   handleEventsSelect: vi.fn(),
 }));
-vi.mock("./options.js", () => ({ handleOptionsCommand: vi.fn() }));
-vi.mock("./setup.js", () => ({
+vi.mock("../../src/interactions/options.js", () => ({ handleOptionsCommand: vi.fn() }));
+vi.mock("../../src/interactions/setup.js", () => ({
   SETUP_MODAL_ID: "analytics:setup",
   handleSetupCommand: vi.fn(),
   handleSetupModal: vi.fn(),
 }));
-vi.mock("./status.js", () => ({ handleStatusCommand: vi.fn() }));
-vi.mock("./test.js", () => ({ handleTestCommand: vi.fn() }));
-vi.mock("./triggers.js", () => ({
+vi.mock("../../src/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
+vi.mock("../../src/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
+vi.mock("../../src/interactions/triggers.js", () => ({
   handleTriggerAdd: vi.fn(),
   handleTriggerList: vi.fn(),
   handleTriggerRemove: vi.fn(),
   handleTriggerToggle: vi.fn(),
 }));
 
-const { routeInteraction } = await import("./router.js");
-const { handleSetupCommand, handleSetupModal } = await import("./setup.js");
-const { handleStatusCommand } = await import("./status.js");
-const { handleEventsSelect } = await import("./events.js");
-const { handleTriggerAdd } = await import("./triggers.js");
+const { routeInteraction } = await import("../../src/interactions/router.js");
+const { handleSetupCommand, handleSetupModal } = await import("../../src/interactions/setup.js");
+const { handleStatusCommand } = await import("../../src/interactions/status.js");
+const { handleEventsSelect } = await import("../../src/interactions/events.js");
+const { handleTriggerAdd } = await import("../../src/interactions/triggers.js");
 
 function ix(over: Record<string, unknown> = {}) {
   const reply = vi.fn(async () => {});

@@ -144,7 +144,7 @@ npm test          # run once
 npm run test:watch
 ```
 
-Tests live next to the code as `src/**/*.test.ts` and are excluded from the build (`tsconfig.build.json`).
+Tests live under `tests/`, mirroring the `src/` layout (`tests/events/`, `tests/interactions/`). They're type-checked by `npm run typecheck` but excluded from the build (`tsconfig.build.json`).
 
 ## Project layout
 

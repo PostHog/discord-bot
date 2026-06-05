@@ -5,10 +5,10 @@ const { captureForGuild, getGuildConfig } = vi.hoisted(() => ({
   getGuildConfig: vi.fn(),
 }));
 
-vi.mock("./capture.js", () => ({ captureForGuild }));
-vi.mock("./configCache.js", () => ({ getGuildConfig }));
+vi.mock("../src/capture.js", () => ({ captureForGuild }));
+vi.mock("../src/configCache.js", () => ({ getGuildConfig }));
 
-const { snapshotGuild } = await import("./snapshots.js");
+const { snapshotGuild } = await import("../src/snapshots.js");
 
 function guild(over: Record<string, unknown> = {}) {
   return {

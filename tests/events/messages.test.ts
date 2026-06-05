@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const { captureForGuild } = vi.hoisted(() => ({ captureForGuild: vi.fn() }));
 const { runMessageTriggers } = vi.hoisted(() => ({ runMessageTriggers: vi.fn() }));
 
-vi.mock("../capture.js", () => ({
+vi.mock("../../src/capture.js", () => ({
   captureForGuild,
   toPersonLike: (u: { id: string; username: string; globalName?: string | null; bot?: boolean }) => ({
     id: u.id,
@@ -13,9 +13,9 @@ vi.mock("../capture.js", () => ({
     bot: !!u.bot,
   }),
 }));
-vi.mock("../triggers.js", () => ({ runMessageTriggers }));
+vi.mock("../../src/triggers.js", () => ({ runMessageTriggers }));
 
-const { register } = await import("./messages.js");
+const { register } = await import("../../src/events/messages.js");
 
 function client() {
   const handlers = new Map<string, (...a: unknown[]) => void>();

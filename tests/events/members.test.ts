@@ -7,7 +7,7 @@ const DAY = 24 * 60 * 60 * 1000;
 const { captureForGuild } = vi.hoisted(() => ({ captureForGuild: vi.fn() }));
 const { runMemberJoinTriggers } = vi.hoisted(() => ({ runMemberJoinTriggers: vi.fn() }));
 
-vi.mock("../capture.js", () => ({
+vi.mock("../../src/capture.js", () => ({
   captureForGuild,
   toPersonLike: (u: { id: string; username: string; globalName?: string | null; bot?: boolean }) => ({
     id: u.id,
@@ -16,10 +16,10 @@ vi.mock("../capture.js", () => ({
     bot: !!u.bot,
   }),
 }));
-vi.mock("../triggers.js", () => ({ runMemberJoinTriggers }));
-vi.mock("../time.js", () => ({ nowMs: () => NOW }));
+vi.mock("../../src/triggers.js", () => ({ runMemberJoinTriggers }));
+vi.mock("../../src/time.js", () => ({ nowMs: () => NOW }));
 
-const { register } = await import("./members.js");
+const { register } = await import("../../src/events/members.js");
 
 function client() {
   const handlers = new Map<string, (...a: unknown[]) => void>();
