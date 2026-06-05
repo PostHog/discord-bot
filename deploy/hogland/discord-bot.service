@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 # Runs as a dedicated, unprivileged user (no sudo, no login shell) — NOT the
-# hog user, which has passwordless sudo. deploy.sh creates this user.
+# hog user, which has passwordless sudo. Create this user at deploy time.
 User=discordbot
 Group=discordbot
 WorkingDirectory=/opt/discord-bot
