@@ -35,8 +35,8 @@ function required(name: string): string {
 }
 
 export const config: BotConfig = {
-  discordToken: required("DISCORD_TOKEN"),
-  discordClientId: required("DISCORD_CLIENT_ID"),
+  discordToken: required("DISCORD_BOT_TOKEN"),
+  discordClientId: required("DISCORD_APPLICATION_ID"),
   databasePath: process.env.DATABASE_PATH?.trim() || "./data/bot.sqlite",
   devGuildId: process.env.DEV_GUILD_ID?.trim() || undefined,
   snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 24),

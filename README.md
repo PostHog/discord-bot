@@ -80,17 +80,17 @@ Each fired event carries auto-context: channel info, what matched (`matched_term
 ## Setup (self-hosting)
 
 1. **Create the Discord app** at <https://discord.com/developers/applications>:
-   - **Bot → Token** → `DISCORD_TOKEN`
-   - **General Information → Application ID** → `DISCORD_CLIENT_ID`
+   - **Bot → Token** → `DISCORD_BOT_TOKEN`
+   - **General Information → Application ID** → `DISCORD_APPLICATION_ID`
    - **Bot → Privileged Gateway Intents**: enable **Server Members Intent** (required for join/leave). Enable **Message Content Intent** too if you want `message_length` / mention / attachment counts (see note below).
 2. **Invite the bot** with the OAuth2 URL generator — scopes `bot` + `applications.commands`, with read permissions (View Channels, Read Message History) plus Send Messages (for the onboarding hint). Example:
    ```
-   https://discord.com/oauth2/authorize?client_id=<DISCORD_CLIENT_ID>&scope=bot+applications.commands&permissions=68608
+   https://discord.com/oauth2/authorize?client_id=<DISCORD_APPLICATION_ID>&scope=bot+applications.commands&permissions=68608
    ```
 3. **Install & configure:**
    ```bash
    npm install
-   cp .env.example .env   # fill in DISCORD_TOKEN, DISCORD_CLIENT_ID
+   cp .env.example .env   # fill in DISCORD_BOT_TOKEN, DISCORD_APPLICATION_ID
    ```
 4. **Register the slash commands:**
    ```bash

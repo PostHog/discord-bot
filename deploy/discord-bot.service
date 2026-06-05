@@ -1,0 +1,23 @@
+[Unit]
+Description=Discord -> PostHog analytics bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=discordbot
+Group=discordbot
+WorkingDirectory=/opt/discord-bot
+Environment=NODE_ENV=production
+Environment=DATABASE_PATH=/opt/discord-bot/data/bot.sqlite
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/opt/discord-bot/data
+
+[Install]
+WantedBy=multi-user.target

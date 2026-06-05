@@ -1,7 +1,7 @@
 {
   "name": "discord-posthog-bot",
   "version": "0.1.0",
-  "description": "A public, configurable Discord bot that streams server-event analytics to PostHog. Each server routes to its own PostHog project.",
+  "description": "A public, configurable Discord bot that streams server-event analytics to PostHog",
   "type": "module",
   "engines": {
     "node": ">=20"
