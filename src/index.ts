@@ -12,6 +12,7 @@ import { shutdownAll } from "@/posthogPool.js";
 import * as snapshots from "@/snapshots.js";
 
 import * as guildCreate from "@/events/guildCreate.js";
+import * as guildDelete from "@/events/guildDelete.js";
 import * as members from "@/events/members.js";
 import * as messages from "@/events/messages.js";
 import * as reactions from "@/events/reactions.js";
@@ -47,6 +48,7 @@ const client = new Client({
 // Register all event handlers.
 ready.register(client);
 guildCreate.register(client);
+guildDelete.register(client);
 messages.register(client);
 members.register(client);
 reactions.register(client);

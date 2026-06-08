@@ -121,7 +121,7 @@ src/
   snapshots.ts       periodic server_snapshot scheduler
   props.ts           shared guild/channel property builders
   index.ts           client setup, handler wiring, graceful shutdown
-  deploy-commands.ts slash-command registration script
+  commandRegistry.ts per-guild slash-command registration
   commands/          slash-command definitions
   interactions/      command / modal / select-menu handlers
   events/            Discord gateway event handlers

@@ -1,13 +1,26 @@
 import { type Client, Events, PermissionFlagsBits } from "discord.js";
 
+import { registerGuildCommands } from "@/commandRegistry.js";
+
 /**
- * When the bot is added to a new server, post a one-time hint in the system
- * channel (if we can) telling an admin how to get started. Purely onboarding —
- * no analytics are sent until an admin runs `/analytics setup`.
+ * When the bot is added to a new server, register its slash commands for that
+ * guild (instant, so `/analytics` works right away) and post a one-time hint in
+ * the system channel (if we can) telling an admin how to get started. Purely
+ * onboarding — no analytics are sent until an admin runs `/analytics setup`.
  */
 export function register(client: Client): void {
   client.on(Events.GuildCreate, async (guild) => {
     console.log(`Joined guild ${guild.name} (${guild.id}).`);
+
+    try {
+      await registerGuildCommands(guild.id);
+      console.log(`Registered slash commands for guild ${guild.id}.`);
+    } catch (err) {
+      console.error(
+        `[guildCreate] failed to register commands for ${guild.id}:`,
+        err
+      );
+    }
 
     const channel = guild.systemChannel;
     if (!channel) return;

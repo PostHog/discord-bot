@@ -7,6 +7,9 @@ import { getPostHogClient } from "@/posthogPool.js";
  * On ready, log status and run a `groupIdentify` for every configured guild so
  * PostHog has up-to-date group properties (name, member count) for the
  * `discord_server` group used on all events.
+ *
+ * Slash commands are not (re)registered here: `guildCreate` registers them on
+ * join and Discord persists them server-side across restarts.
  */
 export function register(client: Client): void {
   client.once(Events.ClientReady, (ready) => {

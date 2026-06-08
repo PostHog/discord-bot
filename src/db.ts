@@ -220,6 +220,22 @@ export function clearConfig(guildId: string): void {
   invalidateConfigCache(guildId);
 }
 
+const deleteAllTriggersStmt = db.prepare<[string]>(
+  "DELETE FROM triggers WHERE guild_id = ?"
+);
+
+/**
+ * Remove everything stored for a guild — config and all triggers. Used when the
+ * bot is removed from a server so we don't retain its PostHog key or settings.
+ * (`triggers` has no FK to `guild_config`, so both must be deleted explicitly.)
+ */
+export function purgeGuild(guildId: string): void {
+  deleteStmt.run(guildId);
+  deleteAllTriggersStmt.run(guildId);
+  invalidateConfigCache(guildId);
+  invalidateTriggersCache(guildId);
+}
+
 // ---------------------------------------------------------------------------
 // Triggers
 // ---------------------------------------------------------------------------

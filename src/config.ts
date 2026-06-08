@@ -10,8 +10,6 @@ export interface BotConfig {
   discordToken: string;
   discordClientId: string;
   databasePath: string;
-  /** Optional guild id used only for instant dev command registration. */
-  devGuildId?: string;
   /** How often to emit the server_snapshot event, in hours (default 24). */
   snapshotIntervalHours: number;
 }
@@ -38,6 +36,5 @@ export const config: BotConfig = {
   discordToken: required("DISCORD_BOT_TOKEN"),
   discordClientId: required("DISCORD_APPLICATION_ID"),
   databasePath: process.env.DATABASE_PATH?.trim() || "./data/bot.sqlite",
-  devGuildId: process.env.DEV_GUILD_ID?.trim() || undefined,
   snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 24),
 };
