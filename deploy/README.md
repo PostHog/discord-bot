@@ -75,13 +75,21 @@ sudo mkdir -p /opt/discord-bot/data
 sudo tee /opt/discord-bot/.env > /dev/null <<'EOF'
 DISCORD_BOT_TOKEN=your-real-bot-token
 DISCORD_APPLICATION_ID=your-real-application-id
+# PostHog Code bridge — both are required; the secret must match PostHog's.
+POSTHOG_DISCORD_SHARED_SECRET=your-shared-secret
+BOT_ACTIONS_BIND=0.0.0.0:8080
 EOF
 sudo chmod 600 /opt/discord-bot/.env
 sudo chown -R discordbot:discordbot /opt/discord-bot
 ```
 
 `DATABASE_PATH` is set by the systemd unit below, so it doesn't need to be in
-`.env`. See `.env.example` for the full list of optional variables.
+`.env`. See `.env.example` for the full list of variables.
+
+The bot exposes an **actions API** on `BOT_ACTIONS_BIND` that PostHog Code calls
+back to drive Discord. PostHog must be able to reach it, so open that port to
+PostHog (e.g. a security-group/firewall rule) and front it with TLS — the bridge
+authenticates with a bearer secret and relies on TLS for transport security.
 
 ## 5. Install and start the service
 
@@ -133,10 +141,10 @@ https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.c
 else the bot needs (members, reactions, voice, bans) arrives via gateway
 intents, not channel permissions.
 
-On join, the bot registers `/analytics` for that guild automatically (instant).
-When it's removed from a server, it deletes its stored config for that guild and
+On join, the bot registers `/ph` for that guild automatically (instant). When
+it's removed from a server, it deletes its stored config for that guild and
 Discord drops the commands — no manual cleanup. Then configure it in-server with
-`/analytics setup` (see the top-level [README](../README.md#per-server-usage)).
+`/ph analytics setup` (see the top-level [README](../README.md#per-server-usage)).
 
 > A server that was added *before* auto-registration shipped won't have the
 > commands. Kick and re-add the bot once to trigger registration.

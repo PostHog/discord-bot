@@ -22,6 +22,8 @@ export default defineConfig({
       DISCORD_BOT_TOKEN: "test-token",
       DISCORD_APPLICATION_ID: "test-app",
       DATABASE_PATH: ":memory:",
+      POSTHOG_DISCORD_SHARED_SECRET: "test-secret",
+      BOT_ACTIONS_BIND: "127.0.0.1:8080",
     },
   },
 });

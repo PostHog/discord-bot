@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@/interactions/bridge.js", () => ({
+  handleCodeCommand: vi.fn(),
+  handleForwardedCommand: vi.fn(),
+  handleComponentForward: vi.fn(),
+  handleModalForward: vi.fn(),
+  handleRepoAutocomplete: vi.fn(),
+}));
 vi.mock("@/interactions/disable.js", () => ({ handleDisableCommand: vi.fn() }));
 vi.mock("@/interactions/events.js", () => ({
   EVENTS_SELECT_ID: "analytics:events",
@@ -26,6 +33,13 @@ const { handleSetupCommand, handleSetupModal } = await import("@/interactions/se
 const { handleStatusCommand } = await import("@/interactions/status.js");
 const { handleEventsSelect } = await import("@/interactions/events.js");
 const { handleTriggerAdd } = await import("@/interactions/triggers.js");
+const {
+  handleCodeCommand,
+  handleForwardedCommand,
+  handleComponentForward,
+  handleModalForward,
+  handleRepoAutocomplete,
+} = await import("@/interactions/bridge.js");
 
 function ix(over: Record<string, unknown> = {}) {
   const reply = vi.fn(async () => {});
@@ -33,8 +47,10 @@ function ix(over: Record<string, unknown> = {}) {
     inGuild: () => true,
     isRepliable: () => true,
     memberPermissions: { has: () => true },
+    isAutocomplete: () => false,
     isChatInputCommand: () => false,
     isModalSubmit: () => false,
+    isMessageComponent: () => false,
     isStringSelectMenu: () => false,
     replied: false,
     deferred: false,
@@ -46,7 +62,7 @@ function ix(over: Record<string, unknown> = {}) {
 function command(group: string | null, sub: string, over: Record<string, unknown> = {}) {
   return ix({
     isChatInputCommand: () => true,
-    commandName: "analytics",
+    commandName: "ph",
     options: { getSubcommandGroup: () => group, getSubcommand: () => sub },
     ...over,
   });
@@ -58,46 +74,109 @@ function replyText(i: { reply: ReturnType<typeof vi.fn> }): string {
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("routeInteraction permission gate", () => {
-  it("rejects interactions outside a guild", async () => {
-    const i = ix({ inGuild: () => false });
+describe("local analytics/triggers (Manage Server gated)", () => {
+  it("rejects analytics outside a guild", async () => {
+    const i = command("analytics", "setup", { inGuild: () => false });
     await routeInteraction(i as never);
     expect(replyText(i)).toContain("inside a server");
+    expect(handleSetupCommand).not.toHaveBeenCalled();
   });
 
-  it("rejects non-admins and does not dispatch", async () => {
-    const i = command(null, "setup", { memberPermissions: { has: () => false } });
+  it("rejects non-admins for analytics and does not dispatch", async () => {
+    const i = command("analytics", "setup", { memberPermissions: { has: () => false } });
     await routeInteraction(i as never);
     expect(replyText(i)).toContain("Manage Server");
     expect(handleSetupCommand).not.toHaveBeenCalled();
   });
-});
 
-describe("routeInteraction dispatch", () => {
-  it("routes a flat subcommand to its handler", async () => {
-    await routeInteraction(command(null, "setup") as never);
-    expect(handleSetupCommand).toHaveBeenCalledTimes(1);
-  });
-
-  it("routes a trigger subcommand group", async () => {
-    await routeInteraction(command("trigger", "add") as never);
-    expect(handleTriggerAdd).toHaveBeenCalledTimes(1);
-  });
-
-  it("routes status", async () => {
-    await routeInteraction(command(null, "status") as never);
+  it("routes an analytics subcommand to its handler", async () => {
+    await routeInteraction(command("analytics", "status") as never);
     expect(handleStatusCommand).toHaveBeenCalledTimes(1);
   });
 
-  it("routes the setup modal submit", async () => {
+  it("routes a triggers subcommand to its handler", async () => {
+    await routeInteraction(command("triggers", "add") as never);
+    expect(handleTriggerAdd).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("forwarded code/project/rules", () => {
+  it("forwards /ph code (no group) publicly", async () => {
+    await routeInteraction(command(null, "code") as never);
+    expect(handleCodeCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards /ph project set without a permission check", async () => {
+    const i = command("project", "set", { memberPermissions: { has: () => false } });
+    await routeInteraction(i as never);
+    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards /ph rules add", async () => {
+    await routeInteraction(command("rules", "add") as never);
+    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires Manage Server for /ph project workspace", async () => {
+    const i = command("project", "workspace", { memberPermissions: { has: () => false } });
+    await routeInteraction(i as never);
+    expect(replyText(i)).toContain("Manage Server");
+    expect(handleForwardedCommand).not.toHaveBeenCalled();
+  });
+
+  it("allows /ph project workspace for admins", async () => {
+    await routeInteraction(command("project", "workspace") as never);
+    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("modals, components, autocomplete", () => {
+  it("routes the analytics setup modal (admin)", async () => {
     const i = ix({ isModalSubmit: () => true, customId: "analytics:setup:us" });
     await routeInteraction(i as never);
     expect(handleSetupModal).toHaveBeenCalledTimes(1);
   });
 
-  it("routes the events select menu", async () => {
-    const i = ix({ isStringSelectMenu: () => true, customId: "analytics:events" });
+  it("gates the analytics setup modal on Manage Server", async () => {
+    const i = ix({
+      isModalSubmit: () => true,
+      customId: "analytics:setup:us",
+      memberPermissions: { has: () => false },
+    });
+    await routeInteraction(i as never);
+    expect(handleSetupModal).not.toHaveBeenCalled();
+    expect(replyText(i)).toContain("Manage Server");
+  });
+
+  it("forwards a PostHog-rendered modal", async () => {
+    const i = ix({ isModalSubmit: () => true, customId: "posthog_repo_modal" });
+    await routeInteraction(i as never);
+    expect(handleModalForward).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes the events select menu (admin)", async () => {
+    const i = ix({
+      isMessageComponent: () => true,
+      isStringSelectMenu: () => true,
+      customId: "analytics:events",
+    });
     await routeInteraction(i as never);
     expect(handleEventsSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards a PostHog-rendered component", async () => {
+    const i = ix({
+      isMessageComponent: () => true,
+      isStringSelectMenu: () => false,
+      customId: "posthog_code_repo_select",
+    });
+    await routeInteraction(i as never);
+    expect(handleComponentForward).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes autocomplete to the repo handler", async () => {
+    const i = ix({ isAutocomplete: () => true });
+    await routeInteraction(i as never);
+    expect(handleRepoAutocomplete).toHaveBeenCalledTimes(1);
   });
 });
