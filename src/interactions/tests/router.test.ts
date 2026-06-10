@@ -100,32 +100,14 @@ describe("local analytics/triggers (Manage Server gated)", () => {
   });
 });
 
-describe("forwarded code/project/rules", () => {
+describe("forwarded code/connect/rules", () => {
   it("forwards /ph code (no group) publicly", async () => {
     await routeInteraction(command(null, "code") as never);
     expect(handleCodeCommand).toHaveBeenCalledTimes(1);
   });
 
-  it("forwards /ph project set without a permission check", async () => {
-    const i = command("project", "set", { memberPermissions: { has: () => false } });
-    await routeInteraction(i as never);
-    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
-  });
-
   it("forwards /ph rules add", async () => {
     await routeInteraction(command("rules", "add") as never);
-    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
-  });
-
-  it("requires Manage Server for /ph project workspace", async () => {
-    const i = command("project", "workspace", { memberPermissions: { has: () => false } });
-    await routeInteraction(i as never);
-    expect(replyText(i)).toContain("Manage Server");
-    expect(handleForwardedCommand).not.toHaveBeenCalled();
-  });
-
-  it("allows /ph project workspace for admins", async () => {
-    await routeInteraction(command("project", "workspace") as never);
     expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
   });
 

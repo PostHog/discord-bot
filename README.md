@@ -30,8 +30,8 @@ Graph these in PostHog for "members / online / boosts over time". It's opt-in vi
 Everything lives under one top-level **`/ph`** command (Discord caps a command at
 one freeform option *or* subcommands, and forbids nested groups — hence `triggers`
 is a sibling group rather than under `analytics`). The `analytics` and `triggers`
-groups require **Manage Server**; `code`, `project`, and `rules` are open to any
-member (PostHog authorizes sensitive actions), except `project workspace`.
+groups plus `connect` require **Manage Server**; `code` and `rules` are open to
+any member (PostHog authorizes sensitive actions).
 
 | Command | What it does | Gating |
 |---|---|---|
@@ -47,11 +47,9 @@ member (PostHog authorizes sensitive actions), except `project workspace`.
 | `/ph triggers list` | List this server's triggers (with ids) | Manage Server |
 | `/ph triggers remove <id>` | Delete a trigger | Manage Server |
 | `/ph triggers toggle <id> <enabled>` | Enable/disable a trigger | Manage Server |
-| `/ph project show` / `set <project_id>` | Show / set your default PostHog project | anyone |
-| `/ph project workspace <project_id>` | Set the workspace-wide default project | Manage Server |
 | `/ph rules list` / `add` / `remove` | Manage repo routing rules | anyone |
 
-`code`, `project`, and `rules` are **forwarded** to PostHog Code over an
+`code`, `connect`, and `rules` are **forwarded** to PostHog Code over an
 authenticated HTTP bridge; PostHog does the work asynchronously and drives the
 Discord reply (threads, messages, reactions) back through the bot's actions API.
 `analytics` and `triggers` are handled locally and write to SQLite. See
@@ -102,7 +100,7 @@ In any server the bot has joined, an admin runs:
 
 ## PostHog Code bridge
 
-`/ph code`, `/ph project`, and `/ph rules` turn the bot into a two-way bridge to
+`/ph code`, `/ph connect`, and `/ph rules` turn the bot into a two-way bridge to
 **PostHog Code**:
 
 - **Discord → PostHog:** the bot ACKs the interaction within Discord's 3 s window

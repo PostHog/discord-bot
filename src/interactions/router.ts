@@ -85,10 +85,6 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
   }
 
   // Forwarded groups/commands.
-  if (group === "project") {
-    if (sub === "workspace" && !(await ensureManageGuild(interaction))) return;
-    return await handleForwardedCommand(interaction);
-  }
   if (group === "rules") {
     return await handleForwardedCommand(interaction);
   }

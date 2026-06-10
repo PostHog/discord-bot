@@ -199,37 +199,6 @@ export const phCommand = new SlashCommandBuilder()
           )
       )
   )
-  // --- project ----------------------------------------------------------
-  .addSubcommandGroup((group) =>
-    group
-      .setName("project")
-      .setDescription("Manage default PostHog project")
-      .addSubcommand((sub) =>
-        sub.setName("show").setDescription("Show current default")
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("set")
-          .setDescription("Set your default project")
-          .addStringOption((o) =>
-            o
-              .setName("project_id")
-              .setDescription("PostHog project id")
-              .setRequired(true)
-          )
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("workspace")
-          .setDescription("Set workspace-wide default (admins)")
-          .addStringOption((o) =>
-            o
-              .setName("project_id")
-              .setDescription("PostHog project id")
-              .setRequired(true)
-          )
-      )
-  )
   // --- rules ------------------------------------------------------------
   .addSubcommandGroup((group) =>
     group
