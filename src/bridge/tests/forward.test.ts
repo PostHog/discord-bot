@@ -56,6 +56,7 @@ describe("buildCommandPayload", () => {
         data,
       },
       guildId: "g",
+      guild: { name: "My Server" },
       channelId: "c",
       user: { id: "u", username: "name", globalName: "Global" },
       id: "iid",
@@ -74,6 +75,7 @@ describe("buildCommandPayload", () => {
       subcommand: "set",
       options: { project_id: "123" },
       guild_id: "g",
+      guild_name: "My Server",
       channel_id: "c",
       user: { id: "u", username: "name", global_name: "Global" },
       interaction_id: "iid",
@@ -96,6 +98,7 @@ describe("forwardInteraction", () => {
   const payload = {
     kind: "command" as const,
     guild_id: "g",
+    guild_name: "My Server",
     channel_id: "c",
     user: { id: "u", username: "n", global_name: null },
     interaction_id: "i",

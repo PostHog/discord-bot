@@ -18,6 +18,8 @@ import { getGuildConfig } from "@/configCache.js";
 export interface ForwardPayload {
   kind: "command" | "component" | "modal_submit";
   guild_id: string | null;
+  /** Guild name when the interaction's guild is cached, else null (display only). */
+  guild_name: string | null;
   channel_id: string | null;
   message_id?: string | null;
   user: { id: string; username: string; global_name: string | null };
@@ -83,6 +85,7 @@ function flattenOptions(
 
 function baseFields(interaction: {
   guildId: string | null;
+  guild?: { name: string } | null;
   channelId: string | null;
   user: { id: string; username: string; globalName: string | null };
   id: string;
@@ -91,6 +94,7 @@ function baseFields(interaction: {
 }) {
   return {
     guild_id: interaction.guildId,
+    guild_name: interaction.guild?.name ?? null,
     channel_id: interaction.channelId,
     user: {
       id: interaction.user.id,
