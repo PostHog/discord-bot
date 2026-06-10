@@ -134,12 +134,21 @@ hand). Both scopes are required — `applications.commands` is what makes the
 slash commands show up:
 
 ```
-https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=66560
+https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=292057861184
 ```
 
-`permissions=66560` = **View Channels** + **Read Message History**. Everything
-else the bot needs (members, reactions, voice, bans) arrives via gateway
-intents, not channel permissions.
+`permissions=292057861184` covers what the bridge actions API needs to act in a
+channel: **View Channels**, **Read Message History**, **Send Messages**, **Send
+Messages in Threads**, **Create Public Threads**, **Add Reactions**, and **Embed
+Links**. (Add **Manage Messages** only if PostHog will delete *other* users'
+messages; the bot needs nothing extra to delete its own. Add **Attach Files** to
+upload files.) Analytics signals (members, voice, bans) arrive via gateway
+intents, not channel permissions. Easiest is to tick these boxes in the URL
+Generator and let it compute the integer.
+
+The **account-link** flow is a separate OAuth authorization PostHog initiates per
+user (`DISCORD_APP_CLIENT_ID`/`SECRET`), using only the `identify` scope — it is
+not part of this invite URL.
 
 On join, the bot registers `/ph` for that guild automatically (instant). When
 it's removed from a server, it deletes its stored config for that guild and
