@@ -42,6 +42,11 @@ export const phCommand = new SlashCommandBuilder()
     sub
       .setName("connect")
       .setDescription("Connect this server to a PostHog project (admins)")
+      .addStringOption((o) =>
+        o
+          .setName("project_id")
+          .setDescription("PostHog project id to pre-select (optional)")
+      )
   )
   // --- analytics --------------------------------------------------------
   .addSubcommandGroup((group) =>
