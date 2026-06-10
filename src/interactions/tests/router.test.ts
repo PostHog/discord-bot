@@ -128,6 +128,18 @@ describe("forwarded code/project/rules", () => {
     await routeInteraction(command("project", "workspace") as never);
     expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
   });
+
+  it("forwards /ph connect for admins", async () => {
+    await routeInteraction(command(null, "connect") as never);
+    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("requires Manage Server for /ph connect", async () => {
+    const i = command(null, "connect", { memberPermissions: { has: () => false } });
+    await routeInteraction(i as never);
+    expect(replyText(i)).toContain("Manage Server");
+    expect(handleForwardedCommand).not.toHaveBeenCalled();
+  });
 });
 
 describe("modals, components, autocomplete", () => {

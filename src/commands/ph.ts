@@ -37,6 +37,12 @@ export const phCommand = new SlashCommandBuilder()
           .setAutocomplete(true)
       )
   )
+  // --- connect ----------------------------------------------------------
+  .addSubcommand((sub) =>
+    sub
+      .setName("connect")
+      .setDescription("Connect this server to a PostHog project (admins)")
+  )
   // --- analytics --------------------------------------------------------
   .addSubcommandGroup((group) =>
     group

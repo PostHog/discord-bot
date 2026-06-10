@@ -36,6 +36,7 @@ member (PostHog authorizes sensitive actions), except `project workspace`.
 | Command | What it does | Gating |
 |---|---|---|
 | `/ph code <prompt> [repo]` | Ask PostHog Code to work on a task | anyone |
+| `/ph connect` | Connect this server to a PostHog project (returns a signed confirmation link) | Manage Server |
 | `/ph analytics setup` | Connect this server to a PostHog project (region + project key, via a modal) | Manage Server |
 | `/ph analytics events` | Choose which events are sent (multi-select) | Manage Server |
 | `/ph analytics options` | Toggle bot filtering and message sampling | Manage Server |
@@ -112,6 +113,13 @@ In any server the bot has joined, an admin runs:
   `POST /actions`) that PostHog calls to create threads and post/edit/delete
   messages and reactions, using the interaction's webhook token while it's valid
   (~15 min) and the bot token afterwards.
+
+**Connecting a server.** `/ph connect` (Manage Server) forwards like any other
+command; PostHog replies with a short-lived signed URL. The admin opens it, logs
+into PostHog, and confirms binding the server to a project — PostHog verifies
+they're an org admin and stores the link. Individual users separately
+account-link via the `identify` OAuth flow. Until then, forwarded commands get an
+ephemeral "link your account / connect this server" prompt.
 
 Both directions authenticate with a single shared bearer secret
 (`POSTHOG_DISCORD_SHARED_SECRET`) and rely on TLS for transport security.

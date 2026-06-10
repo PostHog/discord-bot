@@ -95,6 +95,14 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
   if (sub === "code") {
     return await handleCodeCommand(interaction);
   }
+  // Binding the server to a PostHog project — gate on Manage Server so a
+  // non-admin can't connect the shared server to their own project (PostHog
+  // separately verifies org-admin on the target project).
+  if (sub === "connect") {
+    if (!(await ensureGuild(interaction))) return;
+    if (!(await ensureManageGuild(interaction))) return;
+    return await handleForwardedCommand(interaction);
+  }
 }
 
 async function dispatchAnalytics(
