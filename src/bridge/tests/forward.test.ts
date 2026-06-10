@@ -12,6 +12,7 @@ const fetchMock = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
   getGuildConfig.mockReturnValue(null);
+  config.bridgeBaseUrl = undefined;
   vi.stubGlobal("fetch", fetchMock);
 });
 afterEach(() => vi.unstubAllGlobals());

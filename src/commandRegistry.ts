@@ -21,3 +21,11 @@ export async function registerGuildCommands(guildId: string): Promise<void> {
     { body: commandPayload }
   );
 }
+
+/** Remove all of this app's commands from a guild. Used by the dev script. */
+export async function clearGuildCommands(guildId: string): Promise<void> {
+  await rest.put(
+    Routes.applicationGuildCommands(config.discordClientId, guildId),
+    { body: [] }
+  );
+}
