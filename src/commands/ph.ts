@@ -6,10 +6,9 @@ import { SlashCommandBuilder } from "discord.js";
  * (never both) and forbids nesting subcommand groups:
  *
  *   /ph code <prompt> [repo]                 → PostHog Code (forwarded, public)
+ *   /ph connect [project_id]                 → bind server → project (forwarded, Manage Server)
  *   /ph analytics events|options|status|test|disable → analytics config (local, Manage Server)
  *   /ph triggers  add|list|remove|toggle     → custom triggers (local, Manage Server)
- *   /ph project   show|set|workspace         → default project (forwarded)
- *   /ph rules     list|add|remove            → repo routing rules (forwarded)
  *
  * Permission gating is enforced per-subcommand in `interactions/router.ts`, so
  * no `setDefaultMemberPermissions` is set here (it can only gate the whole
@@ -17,7 +16,7 @@ import { SlashCommandBuilder } from "discord.js";
  */
 export const phCommand = new SlashCommandBuilder()
   .setName("ph")
-  .setDescription("PostHog Code, analytics, and project tools")
+  .setDescription("PostHog Code and analytics tools")
   .setDMPermission(false)
   // --- code -------------------------------------------------------------
   .addSubcommand((sub) =>
@@ -184,42 +183,6 @@ export const phCommand = new SlashCommandBuilder()
             o
               .setName("enabled")
               .setDescription("true to enable, false to disable")
-              .setRequired(true)
-          )
-      )
-  )
-  // --- rules ------------------------------------------------------------
-  .addSubcommandGroup((group) =>
-    group
-      .setName("rules")
-      .setDescription("Manage repo routing rules")
-      .addSubcommand((sub) => sub.setName("list").setDescription("List rules"))
-      .addSubcommand((sub) =>
-        sub
-          .setName("add")
-          .setDescription("Add a rule")
-          .addStringOption((o) =>
-            o
-              .setName("text")
-              .setDescription("When to apply this rule")
-              .setRequired(true)
-          )
-          .addStringOption((o) =>
-            o
-              .setName("repo")
-              .setDescription("owner/repo")
-              .setRequired(true)
-              .setAutocomplete(true)
-          )
-      )
-      .addSubcommand((sub) =>
-        sub
-          .setName("remove")
-          .setDescription("Remove rules")
-          .addStringOption((o) =>
-            o
-              .setName("ids")
-              .setDescription("Comma-separated rule numbers")
               .setRequired(true)
           )
       )

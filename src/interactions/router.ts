@@ -34,8 +34,8 @@ import {
  * - `analytics` / `triggers` groups are handled **locally** and gated to
  *   Manage Server (the gate is per-branch, not global, because `code` and the
  *   PostHog-rendered components must stay open to everyone).
- * - `code` / `project` / `rules` and any non-analytics component/modal are
- *   **forwarded** to PostHog Code (see `interactions/bridge.ts`).
+ * - `code` / `connect` and any non-analytics component/modal are **forwarded**
+ *   to PostHog Code (see `interactions/bridge.ts`).
  */
 export async function routeInteraction(interaction: Interaction): Promise<void> {
   try {
@@ -79,10 +79,7 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
       : await dispatchTrigger(interaction, sub);
   }
 
-  // Forwarded groups/commands.
-  if (group === "rules") {
-    return await handleForwardedCommand(interaction);
-  }
+  // Forwarded commands.
   if (sub === "code") {
     return await handleCodeCommand(interaction);
   }

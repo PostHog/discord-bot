@@ -17,7 +17,7 @@ import {
 } from "@/bridge/forward.js";
 
 /**
- * Handlers for the forwarded `/ph` surface (code/project/rules + any
+ * Handlers for the forwarded `/ph` surface (code/connect + any
  * PostHog-rendered components/modals + repo autocomplete). Each ACKs Discord
  * within the 3 s window, then forwards to PostHog, which drives any resulting UI
  * back through the actions API. Forwards are deduped on interaction id because
@@ -62,7 +62,7 @@ export async function handleCodeCommand(
   await applyForwardResult(interaction, res, true);
 }
 
-/** `/ph project …` / `/ph rules …` → ephemeral deferred reply, then forward. */
+/** `/ph connect` → ephemeral deferred reply, then forward. */
 export async function handleForwardedCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {

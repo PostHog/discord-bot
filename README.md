@@ -30,8 +30,8 @@ Graph these in PostHog for "members / online / boosts over time". It's opt-in vi
 Everything lives under one top-level **`/ph`** command (Discord caps a command at
 one freeform option *or* subcommands, and forbids nested groups — hence `triggers`
 is a sibling group rather than under `analytics`). The `analytics` and `triggers`
-groups plus `connect` require **Manage Server**; `code` and `rules` are open to
-any member (PostHog authorizes sensitive actions).
+groups plus `connect` require **Manage Server**; `code` is open to any member
+(PostHog authorizes sensitive actions).
 
 | Command | What it does | Gating |
 |---|---|---|
@@ -46,9 +46,8 @@ any member (PostHog authorizes sensitive actions).
 | `/ph triggers list` | List this server's triggers (with ids) | Manage Server |
 | `/ph triggers remove <id>` | Delete a trigger | Manage Server |
 | `/ph triggers toggle <id> <enabled>` | Enable/disable a trigger | Manage Server |
-| `/ph rules list` / `add` / `remove` | Manage repo routing rules | anyone |
 
-`code`, `connect`, and `rules` are **forwarded** to PostHog Code over an
+`code` and `connect` are **forwarded** to PostHog Code over an
 authenticated HTTP bridge; PostHog does the work asynchronously and drives the
 Discord reply (threads, messages, reactions) back through the bot's actions API.
 `analytics` and `triggers` are handled locally and write to SQLite. See
@@ -99,7 +98,7 @@ In any server the bot has joined, an admin runs:
 
 ## PostHog Code bridge
 
-`/ph code`, `/ph connect`, and `/ph rules` turn the bot into a two-way bridge to
+`/ph code` and `/ph connect` turn the bot into a two-way bridge to
 **PostHog Code**:
 
 - **Discord → PostHog:** the bot ACKs the interaction within Discord's 3 s window
@@ -124,7 +123,7 @@ ephemeral "link your account / connect this server" prompt.
 Both directions authenticate with a single shared bearer secret
 (`POSTHOG_DISCORD_SHARED_SECRET`) and rely on TLS for transport security.
 Forwarded interactions are deduped on interaction id. The bot stores no state for
-these features — routing rules, project defaults, and account links all live in
+these features — repo routing, project bindings, and account links all live in
 PostHog. Config is in `.env` (see `.env.example`); the actions port must be
 reachable by PostHog.
 

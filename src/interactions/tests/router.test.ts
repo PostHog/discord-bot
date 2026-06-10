@@ -94,15 +94,10 @@ describe("local analytics/triggers (Manage Server gated)", () => {
   });
 });
 
-describe("forwarded code/connect/rules", () => {
+describe("forwarded code/connect", () => {
   it("forwards /ph code (no group) publicly", async () => {
     await routeInteraction(command(null, "code") as never);
     expect(handleCodeCommand).toHaveBeenCalledTimes(1);
-  });
-
-  it("forwards /ph rules add", async () => {
-    await routeInteraction(command("rules", "add") as never);
-    expect(handleForwardedCommand).toHaveBeenCalledTimes(1);
   });
 
   it("forwards /ph connect for admins", async () => {

@@ -107,7 +107,7 @@ function baseFields(interaction: {
   };
 }
 
-/** Build the forward payload for a chat-input command (`/ph code|project|rules`). */
+/** Build the forward payload for a chat-input command (`/ph code|connect`). */
 export function buildCommandPayload(
   interaction: ChatInputCommandInteraction
 ): ForwardPayload {
@@ -116,7 +116,7 @@ export function buildCommandPayload(
   return {
     kind: "command",
     ...baseFields(interaction),
-    // `command` is the group ("project"/"rules") or the bare subcommand ("code");
+    // `command` is the group name or the bare subcommand ("code"/"connect");
     // `subcommand` is the leaf within a group, else null.
     command: group ?? sub,
     subcommand: group ? sub : null,
