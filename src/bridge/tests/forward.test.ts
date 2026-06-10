@@ -5,6 +5,7 @@ vi.mock("@/configCache.js", () => ({ getGuildConfig }));
 
 const { appHostForGuild, buildCommandPayload, fetchRepos, forwardInteraction } =
   await import("@/bridge/forward.js");
+const { config } = await import("@/config.js");
 
 const fetchMock = vi.fn();
 
@@ -28,6 +29,16 @@ describe("appHostForGuild", () => {
   it("uses EU when the guild's host is EU", () => {
     getGuildConfig.mockReturnValue({ posthogHost: "https://eu.i.posthog.com" });
     expect(appHostForGuild("g")).toBe("https://eu.posthog.com");
+  });
+
+  it("honors the dev override over region derivation", () => {
+    getGuildConfig.mockReturnValue({ posthogHost: "https://eu.i.posthog.com" });
+    config.bridgeBaseUrl = "http://127.0.0.1:8000";
+    try {
+      expect(appHostForGuild("g")).toBe("http://127.0.0.1:8000");
+    } finally {
+      config.bridgeBaseUrl = undefined;
+    }
   });
 });
 

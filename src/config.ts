@@ -20,6 +20,12 @@ export interface BotConfig {
   sharedSecret: string;
   /** host:port the bot's inbound actions API binds to (PostHog → bot). */
   actionsBind: { host: string; port: number };
+  /**
+   * Dev-only override for the PostHog app host the bridge forwards to. When set,
+   * it replaces the per-guild region derivation (us/eu cloud) entirely — point
+   * it at a local PostHog, e.g. http://127.0.0.1:8000. Unset in production.
+   */
+  bridgeBaseUrl?: string;
 }
 
 function positiveNumber(name: string, fallback: number): number {
@@ -62,4 +68,5 @@ export const config: BotConfig = {
   snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 24),
   sharedSecret: required("POSTHOG_DISCORD_SHARED_SECRET"),
   actionsBind: requiredBind("BOT_ACTIONS_BIND"),
+  bridgeBaseUrl: process.env.POSTHOG_BRIDGE_BASE_URL?.trim().replace(/\/+$/, "") || undefined,
 };

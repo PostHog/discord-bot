@@ -47,6 +47,8 @@ const REPOS_TIMEOUT_MS = 2_000;
  * `posthogHost`; unconfigured guilds default to US.
  */
 export function appHostForGuild(guildId: string | null): string {
+  // Dev override (e.g. a tunneled local PostHog) wins over region derivation.
+  if (config.bridgeBaseUrl) return config.bridgeBaseUrl;
   const host = guildId ? getGuildConfig(guildId)?.posthogHost : undefined;
   return host?.includes("eu")
     ? "https://eu.posthog.com"
