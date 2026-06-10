@@ -3,7 +3,7 @@ import "dotenv/config";
 /**
  * Bot-level configuration loaded from the environment. This is intentionally
  * minimal — PostHog credentials are NOT here, because they are configured
- * per-guild at runtime via the `/analytics setup` slash command and stored in
+ * per-guild at runtime via the `/ph connect` flow and stored in
  * SQLite. See {@link file://./db.ts}.
  */
 export interface BotConfig {

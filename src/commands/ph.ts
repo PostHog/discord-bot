@@ -6,7 +6,7 @@ import { SlashCommandBuilder } from "discord.js";
  * (never both) and forbids nesting subcommand groups:
  *
  *   /ph code <prompt> [repo]                 → PostHog Code (forwarded, public)
- *   /ph analytics setup|events|…|disable     → analytics config (local, Manage Server)
+ *   /ph analytics events|options|status|test|disable → analytics config (local, Manage Server)
  *   /ph triggers  add|list|remove|toggle     → custom triggers (local, Manage Server)
  *   /ph project   show|set|workspace         → default project (forwarded)
  *   /ph rules     list|add|remove            → repo routing rules (forwarded)
@@ -53,17 +53,6 @@ export const phCommand = new SlashCommandBuilder()
     group
       .setName("analytics")
       .setDescription("Configure PostHog analytics for this server")
-      .addSubcommand((sub) =>
-        sub
-          .setName("setup")
-          .setDescription("Connect this server to a PostHog project (key + region)")
-          .addStringOption((o) =>
-            o
-              .setName("region")
-              .setDescription("PostHog Cloud region (default: us)")
-              .addChoices({ name: "us", value: "us" }, { name: "eu", value: "eu" })
-          )
-      )
       .addSubcommand((sub) =>
         sub
           .setName("events")

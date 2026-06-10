@@ -5,7 +5,7 @@ import {
 
 import { clearConfig } from "@/db.js";
 
-/** `/analytics disable` → clear all config; the bot goes silent for this guild. */
+/** `/ph analytics disable` → clear all config; the bot goes silent for this guild. */
 export async function handleDisableCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
@@ -16,7 +16,7 @@ export async function handleDisableCommand(
   await interaction.reply({
     content:
       "🛑 Analytics disabled. This server's PostHog key and event settings have " +
-      "been cleared. Run `/analytics setup` any time to start again.",
+      "been cleared. Run `/ph connect` any time to start again.",
     flags: MessageFlags.Ephemeral,
   });
 }

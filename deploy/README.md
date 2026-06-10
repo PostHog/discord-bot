@@ -153,7 +153,7 @@ not part of this invite URL.
 On join, the bot registers `/ph` for that guild automatically (instant). When
 it's removed from a server, it deletes its stored config for that guild and
 Discord drops the commands — no manual cleanup. Then configure it in-server with
-`/ph analytics setup` (see the top-level [README](../README.md#per-server-usage)).
+`/ph connect` (see the top-level [README](../README.md#per-server-usage)).
 
 > A server that was added *before* auto-registration shipped won't have the
 > commands. Kick and re-add the bot once to trigger registration.

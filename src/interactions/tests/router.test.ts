@@ -14,11 +14,6 @@ vi.mock("@/interactions/events.js", () => ({
   handleEventsSelect: vi.fn(),
 }));
 vi.mock("@/interactions/options.js", () => ({ handleOptionsCommand: vi.fn() }));
-vi.mock("@/interactions/setup.js", () => ({
-  SETUP_MODAL_ID: "analytics:setup",
-  handleSetupCommand: vi.fn(),
-  handleSetupModal: vi.fn(),
-}));
 vi.mock("@/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
 vi.mock("@/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
 vi.mock("@/interactions/triggers.js", () => ({
@@ -29,7 +24,6 @@ vi.mock("@/interactions/triggers.js", () => ({
 }));
 
 const { routeInteraction } = await import("@/interactions/router.js");
-const { handleSetupCommand, handleSetupModal } = await import("@/interactions/setup.js");
 const { handleStatusCommand } = await import("@/interactions/status.js");
 const { handleEventsSelect } = await import("@/interactions/events.js");
 const { handleTriggerAdd } = await import("@/interactions/triggers.js");
@@ -76,17 +70,17 @@ beforeEach(() => vi.clearAllMocks());
 
 describe("local analytics/triggers (Manage Server gated)", () => {
   it("rejects analytics outside a guild", async () => {
-    const i = command("analytics", "setup", { inGuild: () => false });
+    const i = command("analytics", "status", { inGuild: () => false });
     await routeInteraction(i as never);
     expect(replyText(i)).toContain("inside a server");
-    expect(handleSetupCommand).not.toHaveBeenCalled();
+    expect(handleStatusCommand).not.toHaveBeenCalled();
   });
 
   it("rejects non-admins for analytics and does not dispatch", async () => {
-    const i = command("analytics", "setup", { memberPermissions: { has: () => false } });
+    const i = command("analytics", "status", { memberPermissions: { has: () => false } });
     await routeInteraction(i as never);
     expect(replyText(i)).toContain("Manage Server");
-    expect(handleSetupCommand).not.toHaveBeenCalled();
+    expect(handleStatusCommand).not.toHaveBeenCalled();
   });
 
   it("routes an analytics subcommand to its handler", async () => {
@@ -125,23 +119,6 @@ describe("forwarded code/connect/rules", () => {
 });
 
 describe("modals, components, autocomplete", () => {
-  it("routes the analytics setup modal (admin)", async () => {
-    const i = ix({ isModalSubmit: () => true, customId: "analytics:setup:us" });
-    await routeInteraction(i as never);
-    expect(handleSetupModal).toHaveBeenCalledTimes(1);
-  });
-
-  it("gates the analytics setup modal on Manage Server", async () => {
-    const i = ix({
-      isModalSubmit: () => true,
-      customId: "analytics:setup:us",
-      memberPermissions: { has: () => false },
-    });
-    await routeInteraction(i as never);
-    expect(handleSetupModal).not.toHaveBeenCalled();
-    expect(replyText(i)).toContain("Manage Server");
-  });
-
   it("forwards a PostHog-rendered modal", async () => {
     const i = ix({ isModalSubmit: () => true, customId: "posthog_repo_modal" });
     await routeInteraction(i as never);

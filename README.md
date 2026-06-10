@@ -11,7 +11,7 @@ A public, multi-tenant Discord bot that streams server-event analytics to **Post
 Discord event → handler → captureForGuild() → configured? → event enabled? → bot filter? → sampling? → PostHog project
 ```
 
-Every event is attached to a `discord_server` group keyed on the guild id, so you can break analytics down per server. Nothing is sent until an admin runs `/ph analytics setup` and enables event types. Per-guild config (API key, host, enabled events, options) is stored in SQLite, where a client pool keeps one `posthog-node` client per destination.
+Every event is attached to a `discord_server` group keyed on the guild id, so you can break analytics down per server. Nothing is sent until an admin connects the server with `/ph connect` and enables event types. Per-guild config (API key, host, enabled events, options) is stored in SQLite, where a client pool keeps one `posthog-node` client per destination.
 
 ## Supported events
 
@@ -36,8 +36,7 @@ any member (PostHog authorizes sensitive actions).
 | Command | What it does | Gating |
 |---|---|---|
 | `/ph code <prompt> [repo]` | Ask PostHog Code to work on a task | anyone |
-| `/ph connect` | Connect this server to a PostHog project (returns a signed confirmation link) | Manage Server |
-| `/ph analytics setup` | Connect this server to a PostHog project (region + project key, via a modal) | Manage Server |
+| `/ph connect` | Connect this server to a PostHog project (returns a signed confirmation link; also provisions the analytics project) | Manage Server |
 | `/ph analytics events` | Choose which events are sent (multi-select) | Manage Server |
 | `/ph analytics options` | Toggle bot filtering and message sampling | Manage Server |
 | `/ph analytics status` | Show the current config (the key is masked) | Manage Server |
@@ -59,7 +58,7 @@ The PostHog project API key (`phc_…`) is a publishable, capture-only key (it c
 
 ## Custom event triggers
 
-Beyond the built-in catalog, server admins can define **triggers** When Discord activity matches a rule, the bot emits a **custom-named** PostHog event. Triggers fire independently of whichever built-in events are enabled (they only need the server to be connected via `/ph analytics setup`).
+Beyond the built-in catalog, server admins can define **triggers** When Discord activity matches a rule, the bot emits a **custom-named** PostHog event. Triggers fire independently of whichever built-in events are enabled (they only need the server to be connected via `/ph connect`).
 
 A trigger has a **source** and optional **conditions** (all conditions must match):
 
@@ -94,7 +93,7 @@ Matching is simple and case-insensitive (`contains` / `keywords` / `starts_with`
 
 In any server the bot has joined, an admin runs:
 
-1. `/ph analytics setup` → choose the `region` (`us` or `eu`) and paste the PostHog **project** API key. The destination is fixed to that PostHog Cloud region. There is no custom/self-hosted host option, so the bot can only ever send to `us.i.posthog.com` or `eu.i.posthog.com`.
+1. `/ph connect` → open the signed link, confirm the PostHog project, and PostHog provisions the server (binding it to the project and sending the bot its capture key + region — `us.i.posthog.com` or `eu.i.posthog.com`, never an arbitrary host).
 2. `/ph analytics test` → confirm the event lands in PostHog's Activity feed.
 3. `/ph analytics events` → tick the events to track.
 
@@ -115,7 +114,10 @@ In any server the bot has joined, an admin runs:
 **Connecting a server.** `/ph connect` (Manage Server) forwards like any other
 command; PostHog replies with a short-lived signed URL. The admin opens it, logs
 into PostHog, and confirms binding the server to a project — PostHog verifies
-they're an org admin and stores the link. Individual users separately
+they're an org admin, stores the link, and pushes the project's capture key back
+to the bot via the actions API (`op: "connect_guild"` with `guild_id`, `region`,
+`project_api_key`; an empty key disconnects). That's how analytics gets
+provisioned — there's no separate setup step. Individual users separately
 account-link via the `identify` OAuth flow. Until then, forwarded commands get an
 ephemeral "link your account / connect this server" prompt.
 

@@ -9,6 +9,7 @@ const { rest } = vi.hoisted(() => ({
 vi.mock("@/bridge/discordRest.js", () => ({ rest }));
 
 const { createActionsServer, handleAction } = await import("@/bridge/actionsServer.js");
+const { readGuildConfig } = await import("@/db.js"); // real in-memory SQLite
 
 // vitest.config sets DISCORD_APPLICATION_ID = "test-app".
 const APP = "test-app";
@@ -73,6 +74,33 @@ describe("handleAction", () => {
 
   it("rejects an unknown op", async () => {
     const res = await handleAction("teleport", {});
+    expect(res.status).toBe(400);
+  });
+
+  it("connect_guild stores the project key against the region host", async () => {
+    const res = await handleAction("connect_guild", {
+      guild_id: "g-connect",
+      region: "eu",
+      project_api_key: "phc_test",
+    });
+    expect(res).toEqual({ status: 200, body: { ok: true } });
+    const cfg = readGuildConfig("g-connect");
+    expect(cfg?.posthogApiKey).toBe("phc_test");
+    expect(cfg?.posthogHost).toBe("https://eu.i.posthog.com");
+  });
+
+  it("connect_guild with no key disconnects the guild", async () => {
+    await handleAction("connect_guild", {
+      guild_id: "g-dc",
+      region: "us",
+      project_api_key: "phc_x",
+    });
+    await handleAction("connect_guild", { guild_id: "g-dc" });
+    expect(readGuildConfig("g-dc")?.posthogApiKey ?? null).toBeNull();
+  });
+
+  it("connect_guild requires a guild_id", async () => {
+    const res = await handleAction("connect_guild", { project_api_key: "phc_x" });
     expect(res.status).toBe(400);
   });
 });

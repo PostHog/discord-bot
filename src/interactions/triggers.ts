@@ -176,7 +176,7 @@ export async function handleTriggerList(
   if (triggers.length === 0) {
     await interaction.reply({
       content:
-        "No triggers yet. Create one with `/analytics trigger add`. " +
+        "No triggers yet. Create one with `/ph triggers add`. " +
         "Example: source `message`, `contains: refund`, event_name `refund_request`.",
       ...EPHEMERAL,
     });

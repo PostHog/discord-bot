@@ -10,6 +10,9 @@ import { Routes } from "discord.js";
 import { verifyBearer } from "@/bridge/auth.js";
 import { rest } from "@/bridge/discordRest.js";
 import { applicationId } from "@/bridge/forward.js";
+import { clearConfig, upsertPosthog } from "@/db.js";
+import { hostForRegion } from "@/regions.js";
+import { nowMs } from "@/time.js";
 
 /**
  * The actions API (PostHog → bot). PostHog Code does its work asynchronously and
@@ -119,6 +122,23 @@ export async function handleAction(op: string, fields: Fields): Promise<ActionRe
           str(fields.emoji)
         )
       );
+      return { status: 200, body: { ok: true } };
+    }
+
+    case "connect_guild": {
+      // Push from PostHog after an admin confirms `/ph connect`: bind this
+      // guild's analytics capture to the chosen project. Replaces the old
+      // `/ph analytics setup` modal — the project key now comes from PostHog,
+      // never pasted into Discord. An empty key disconnects.
+      const guildId = str(fields.guild_id);
+      if (!guildId) return { status: 400, body: { error: "missing guild_id" } };
+      const apiKey = fields.project_api_key ? str(fields.project_api_key) : "";
+      if (apiKey) {
+        // Host is derived from the region, never taken as free text.
+        upsertPosthog(guildId, apiKey, hostForRegion(str(fields.region)), nowMs());
+      } else {
+        clearConfig(guildId);
+      }
       return { status: 200, body: { ok: true } };
     }
 

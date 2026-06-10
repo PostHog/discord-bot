@@ -18,11 +18,6 @@ import {
 import { handleDisableCommand } from "@/interactions/disable.js";
 import { EVENTS_SELECT_ID, handleEventsCommand, handleEventsSelect } from "@/interactions/events.js";
 import { handleOptionsCommand } from "@/interactions/options.js";
-import {
-  SETUP_MODAL_ID,
-  handleSetupCommand,
-  handleSetupModal,
-} from "@/interactions/setup.js";
 import { handleStatusCommand } from "@/interactions/status.js";
 import { handleTestCommand } from "@/interactions/test.js";
 import {
@@ -106,8 +101,6 @@ async function dispatchAnalytics(
   sub: string | null
 ): Promise<void> {
   switch (sub) {
-    case "setup":
-      return await handleSetupCommand(interaction);
     case "events":
       return await handleEventsCommand(interaction);
     case "options":
@@ -138,13 +131,7 @@ async function dispatchTrigger(
 }
 
 async function routeModal(interaction: ModalSubmitInteraction): Promise<void> {
-  // Analytics setup modal is local + Manage-Server-gated; everything else is
-  // a PostHog-rendered modal to forward.
-  if (interaction.customId.startsWith(`${SETUP_MODAL_ID}:`)) {
-    if (!(await ensureGuild(interaction))) return;
-    if (!(await ensureManageGuild(interaction))) return;
-    return await handleSetupModal(interaction);
-  }
+  // The bot has no local modals; every modal submit is PostHog-rendered.
   return await handleModalForward(interaction);
 }
 

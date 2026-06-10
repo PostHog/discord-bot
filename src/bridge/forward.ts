@@ -43,8 +43,8 @@ const REPOS_TIMEOUT_MS = 2_000;
 
 /**
  * Map a guild's analytics region to the PostHog **app** host (where the bridge
- * API lives). The guild picks `us`/`eu` during `/ph analytics setup`, stored as
- * `posthogHost`; unconfigured guilds default to US.
+ * API lives). The region is set when the guild connects (`/ph connect`), stored
+ * as `posthogHost`; unconfigured guilds default to US.
  */
 export function appHostForGuild(guildId: string | null): string {
   // Dev override (e.g. a tunneled local PostHog) wins over region derivation.

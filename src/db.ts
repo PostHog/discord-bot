@@ -9,7 +9,7 @@ import { sanitizeEventKeys } from "@/events-catalog.js";
 
 /**
  * Per-guild configuration as stored in SQLite. `posthogApiKey === null` means
- * the guild has not run `/analytics setup` yet, so the bot stays silent for it.
+ * the guild has not connected via `/ph connect` yet, so the bot stays silent for it.
  */
 export interface GuildConfig {
   guildId: string;

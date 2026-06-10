@@ -11,7 +11,7 @@ import { getGuildConfig } from "@/configCache.js";
  * Server Insights overview, which is not exposed to bots.
  *
  * It's opt-in like any other event: a guild only gets snapshots if it's
- * configured AND has enabled the `server_snapshot` event via `/analytics events`.
+ * configured AND has enabled the `server_snapshot` event via `/ph analytics events`.
  */
 const SNAPSHOT_EVENT = "server_snapshot";
 
