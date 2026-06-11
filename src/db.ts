@@ -108,6 +108,12 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_triggers_guild ON triggers(guild_id);
+
+  CREATE TABLE IF NOT EXISTS watched_forums (
+    guild_id   TEXT NOT NULL,
+    channel_id TEXT NOT NULL,
+    PRIMARY KEY (guild_id, channel_id)
+  );
 `);
 
 function rowToConfig(row: GuildConfigRow): GuildConfig {
@@ -225,13 +231,14 @@ const deleteAllTriggersStmt = db.prepare<[string]>(
 );
 
 /**
- * Remove everything stored for a guild — config and all triggers. Used when the
- * bot is removed from a server so we don't retain its PostHog key or settings.
- * (`triggers` has no FK to `guild_config`, so both must be deleted explicitly.)
+ * Remove everything stored for a guild — config, triggers, and watched forums.
+ * Used when the bot is removed from a server so we don't retain its PostHog key
+ * or settings. (No FK to `guild_config`, so each table is deleted explicitly.)
  */
 export function purgeGuild(guildId: string): void {
   deleteStmt.run(guildId);
   deleteAllTriggersStmt.run(guildId);
+  deleteAllWatchedForumsStmt.run(guildId);
   invalidateConfigCache(guildId);
   invalidateTriggersCache(guildId);
 }
@@ -350,6 +357,48 @@ export function setTriggerEnabled(
   const result = setTriggerEnabledStmt.run(enabled ? 1 : 0, now, guildId, id);
   invalidateTriggersCache(guildId);
   return result.changes > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Watched forums (forum channels whose new posts are forwarded to PostHog Code)
+// ---------------------------------------------------------------------------
+
+const addWatchedForumStmt = db.prepare<[string, string]>(
+  "INSERT OR IGNORE INTO watched_forums (guild_id, channel_id) VALUES (?, ?)"
+);
+const removeWatchedForumStmt = db.prepare<[string, string]>(
+  "DELETE FROM watched_forums WHERE guild_id = ? AND channel_id = ?"
+);
+const listWatchedForumsStmt = db.prepare<[string]>(
+  "SELECT channel_id FROM watched_forums WHERE guild_id = ?"
+);
+const isWatchedForumStmt = db.prepare<[string, string]>(
+  "SELECT 1 FROM watched_forums WHERE guild_id = ? AND channel_id = ?"
+);
+const deleteAllWatchedForumsStmt = db.prepare<[string]>(
+  "DELETE FROM watched_forums WHERE guild_id = ?"
+);
+
+/** Start watching a forum channel. Returns true if it was newly added. */
+export function addWatchedForum(guildId: string, channelId: string): boolean {
+  return addWatchedForumStmt.run(guildId, channelId).changes > 0;
+}
+
+/** Stop watching a forum channel. Returns true if it was being watched. */
+export function removeWatchedForum(guildId: string, channelId: string): boolean {
+  return removeWatchedForumStmt.run(guildId, channelId).changes > 0;
+}
+
+/** All forum channel ids watched in a guild. */
+export function listWatchedForums(guildId: string): string[] {
+  return (listWatchedForumsStmt.all(guildId) as { channel_id: string }[]).map(
+    (r) => r.channel_id
+  );
+}
+
+/** Whether a specific forum channel is watched (hot path on thread creation). */
+export function isWatchedForum(guildId: string, channelId: string): boolean {
+  return isWatchedForumStmt.get(guildId, channelId) !== undefined;
 }
 
 export function closeDb(): void {

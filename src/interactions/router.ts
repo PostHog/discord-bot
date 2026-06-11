@@ -17,6 +17,11 @@ import {
 } from "@/interactions/bridge.js";
 import { handleDisableCommand } from "@/interactions/disable.js";
 import { EVENTS_SELECT_ID, handleEventsCommand, handleEventsSelect } from "@/interactions/events.js";
+import {
+  handleForumsList,
+  handleForumsUnwatch,
+  handleForumsWatch,
+} from "@/interactions/forums.js";
 import { handleOptionsCommand } from "@/interactions/options.js";
 import { handleStatusCommand } from "@/interactions/status.js";
 import { handleTestCommand } from "@/interactions/test.js";
@@ -71,12 +76,12 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
   const sub = interaction.options.getSubcommand(false);
 
   // Local, Manage-Server-gated groups.
-  if (group === "analytics" || group === "triggers") {
+  if (group === "analytics" || group === "triggers" || group === "forums") {
     if (!(await ensureGuild(interaction))) return;
     if (!(await ensureManageGuild(interaction))) return;
-    return group === "analytics"
-      ? await dispatchAnalytics(interaction, sub)
-      : await dispatchTrigger(interaction, sub);
+    if (group === "analytics") return await dispatchAnalytics(interaction, sub);
+    if (group === "triggers") return await dispatchTrigger(interaction, sub);
+    return await dispatchForums(interaction, sub);
   }
 
   // Forwarded commands.
@@ -90,6 +95,20 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
     if (!(await ensureGuild(interaction))) return;
     if (!(await ensureManageGuild(interaction))) return;
     return await handleForwardedCommand(interaction);
+  }
+}
+
+async function dispatchForums(
+  interaction: ChatInputCommandInteraction,
+  sub: string | null
+): Promise<void> {
+  switch (sub) {
+    case "watch":
+      return await handleForumsWatch(interaction);
+    case "unwatch":
+      return await handleForumsUnwatch(interaction);
+    case "list":
+      return await handleForumsList(interaction);
   }
 }
 

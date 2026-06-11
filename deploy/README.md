@@ -146,6 +146,10 @@ upload files.) Analytics signals (members, voice, bans) arrive via gateway
 intents, not channel permissions. Easiest is to tick these boxes in the URL
 Generator and let it compute the integer.
 
+Forum forwarding (`/ph forums watch`) relies on **View Channel** + **Send
+Messages in Threads** on the watched forum — both are in the set above, but make
+sure a per-channel override on that forum doesn't remove them.
+
 The **account-link** flow is a separate OAuth authorization PostHog initiates per
 user (`DISCORD_APP_CLIENT_ID`/`SECRET`), using only the `identify` scope — it is
 not part of this invite URL.

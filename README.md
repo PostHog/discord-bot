@@ -29,9 +29,9 @@ Graph these in PostHog for "members / online / boosts over time". It's opt-in vi
 
 Everything lives under one top-level **`/ph`** command (Discord caps a command at
 one freeform option *or* subcommands, and forbids nested groups — hence `triggers`
-is a sibling group rather than under `analytics`). The `analytics` and `triggers`
-groups plus `connect` require **Manage Server**; `code` is open to any member
-(PostHog authorizes sensitive actions).
+is a sibling group rather than under `analytics`). The `analytics`, `triggers`,
+and `forums` groups plus `connect` require **Manage Server**; `code` is open to
+any member (PostHog authorizes sensitive actions).
 
 | Command | What it does | Gating |
 |---|---|---|
@@ -46,6 +46,8 @@ groups plus `connect` require **Manage Server**; `code` is open to any member
 | `/ph triggers list` | List this server's triggers (with ids) | Manage Server |
 | `/ph triggers remove <id>` | Delete a trigger | Manage Server |
 | `/ph triggers toggle <id> <enabled>` | Enable/disable a trigger | Manage Server |
+| `/ph forums watch` / `unwatch <channel>` | Watch/stop watching a forum channel (new posts forwarded to PostHog Code) | Manage Server |
+| `/ph forums list` | List watched forum channels | Manage Server |
 
 `code` and `connect` are **forwarded** to PostHog Code over an
 authenticated HTTP bridge; PostHog does the work asynchronously and drives the
@@ -109,6 +111,13 @@ In any server the bot has joined, an admin runs:
   `POST /actions`) that PostHog calls to create threads and post/edit/delete
   messages and reactions, using the interaction's webhook token while it's valid
   (~15 min) and the bot token afterwards.
+
+**Forum posts.** `/ph forums watch <forum>` (Manage Server, stored locally per
+guild) makes the bot forward each **new post** in that forum channel to the same
+ingest endpoint as `kind: "forum_post"` (title, starter-message content, applied
+tag names, author). Bots and archived threads are skipped; PostHog dedupes by
+`thread_id`, so a failed POST is retried once. This is fire-and-forget — there's
+no interaction to reply to.
 
 **Connecting a server.** `/ph connect` (Manage Server) forwards like any other
 command; PostHog replies with a short-lived signed URL. The admin opens it, logs

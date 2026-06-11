@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { getGuildConfig } = vi.hoisted(() => ({ getGuildConfig: vi.fn() }));
 vi.mock("@/configCache.js", () => ({ getGuildConfig }));
 
-const { appHostForGuild, buildCommandPayload, fetchRepos, forwardInteraction } =
+const { appHostForGuild, buildCommandPayload, fetchRepos, forwardForumPost, forwardInteraction } =
   await import("@/bridge/forward.js");
 const { config } = await import("@/config.js");
 
@@ -135,6 +135,48 @@ describe("forwardInteraction", () => {
   it("returns null on a network error", async () => {
     fetchMock.mockRejectedValue(new Error("boom"));
     expect(await forwardInteraction(payload)).toBeNull();
+  });
+});
+
+describe("forwardForumPost", () => {
+  const forumPayload = {
+    kind: "forum_post" as const,
+    guild_id: "g",
+    forum_channel_id: "fc",
+    thread_id: "t",
+    title: "Help",
+    content: "body",
+    tags: ["bug"],
+    author: { id: "u", username: "n", global_name: null, bot: false },
+  };
+
+  it("POSTs the forum post to the ingest endpoint with a bearer", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: "accepted" }));
+    await forwardForumPost(forumPayload);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://us.posthog.com/api/discord/interactions/ingest");
+    expect((init as { headers: Record<string, string> }).headers.Authorization).toBe(
+      "Bearer test-secret"
+    );
+    expect(JSON.parse((init as { body: string }).body)).toMatchObject({
+      kind: "forum_post",
+      thread_id: "t",
+      tags: ["bug"],
+    });
+  });
+
+  it("retries once on a non-OK response, then gives up", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}, false, 502));
+    await forwardForumPost(forumPayload);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("never throws on a network error", async () => {
+    fetchMock.mockRejectedValue(new Error("boom"));
+    await expect(forwardForumPost(forumPayload)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

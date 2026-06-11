@@ -195,6 +195,34 @@ export async function forwardInteraction(
   }
 }
 
+export interface ForumPostPayload {
+  kind: "forum_post";
+  guild_id: string;
+  forum_channel_id: string;
+  thread_id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  author: { id: string; username: string; global_name: string | null; bot: boolean };
+}
+
+/**
+ * Forward a new forum post to PostHog (fire-and-forget). PostHog dedupes by
+ * `thread_id`, so a non-2xx is retried once; anything else is logged and dropped.
+ */
+export async function forwardForumPost(payload: ForumPostPayload): Promise<void> {
+  const url = `${appHostForGuild(payload.guild_id)}/api/discord/interactions/ingest`;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      const res = await postJson(url, payload, INGEST_TIMEOUT_MS);
+      if (res.ok) return; // accepted or skipped — done
+      console.error(`[bridge] forum_post ingest returned ${res.status} (attempt ${attempt})`);
+    } catch (err) {
+      console.error(`[bridge] forum_post forward failed (attempt ${attempt}):`, err);
+    }
+  }
+}
+
 /** Autocomplete choice shape Discord expects. */
 export interface RepoChoice {
   name: string;

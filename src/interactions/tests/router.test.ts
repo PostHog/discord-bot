@@ -14,6 +14,11 @@ vi.mock("@/interactions/events.js", () => ({
   handleEventsSelect: vi.fn(),
 }));
 vi.mock("@/interactions/options.js", () => ({ handleOptionsCommand: vi.fn() }));
+vi.mock("@/interactions/forums.js", () => ({
+  handleForumsWatch: vi.fn(),
+  handleForumsUnwatch: vi.fn(),
+  handleForumsList: vi.fn(),
+}));
 vi.mock("@/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
 vi.mock("@/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
 vi.mock("@/interactions/triggers.js", () => ({
@@ -27,6 +32,7 @@ const { routeInteraction } = await import("@/interactions/router.js");
 const { handleStatusCommand } = await import("@/interactions/status.js");
 const { handleEventsSelect } = await import("@/interactions/events.js");
 const { handleTriggerAdd } = await import("@/interactions/triggers.js");
+const { handleForumsWatch } = await import("@/interactions/forums.js");
 const {
   handleCodeCommand,
   handleForwardedCommand,
@@ -91,6 +97,18 @@ describe("local analytics/triggers (Manage Server gated)", () => {
   it("routes a triggers subcommand to its handler", async () => {
     await routeInteraction(command("triggers", "add") as never);
     expect(handleTriggerAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes a forums subcommand to its handler", async () => {
+    await routeInteraction(command("forums", "watch") as never);
+    expect(handleForumsWatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("gates forums on Manage Server", async () => {
+    const i = command("forums", "watch", { memberPermissions: { has: () => false } });
+    await routeInteraction(i as never);
+    expect(replyText(i)).toContain("Manage Server");
+    expect(handleForumsWatch).not.toHaveBeenCalled();
   });
 });
 

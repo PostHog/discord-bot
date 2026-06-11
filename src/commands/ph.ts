@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { ChannelType, SlashCommandBuilder } from "discord.js";
 
 /**
  * The single top-level `/ph` command. It bundles every capability under one
@@ -9,6 +9,7 @@ import { SlashCommandBuilder } from "discord.js";
  *   /ph connect [project_id]                 → bind server → project (forwarded, Manage Server)
  *   /ph analytics events|options|status|test|disable → analytics config (local, Manage Server)
  *   /ph triggers  add|list|remove|toggle     → custom triggers (local, Manage Server)
+ *   /ph forums    watch|unwatch|list         → forward forum posts (local, Manage Server)
  *
  * Permission gating is enforced per-subcommand in `interactions/router.ts`, so
  * no `setDefaultMemberPermissions` is set here (it can only gate the whole
@@ -185,6 +186,39 @@ export const phCommand = new SlashCommandBuilder()
               .setDescription("true to enable, false to disable")
               .setRequired(true)
           )
+      )
+  )
+  // --- forums -----------------------------------------------------------
+  .addSubcommandGroup((group) =>
+    group
+      .setName("forums")
+      .setDescription("Forward new posts in a forum channel to PostHog Code")
+      .addSubcommand((sub) =>
+        sub
+          .setName("watch")
+          .setDescription("Start forwarding new posts from a forum channel")
+          .addChannelOption((o) =>
+            o
+              .setName("channel")
+              .setDescription("The forum channel to watch")
+              .addChannelTypes(ChannelType.GuildForum)
+              .setRequired(true)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub
+          .setName("unwatch")
+          .setDescription("Stop forwarding posts from a forum channel")
+          .addChannelOption((o) =>
+            o
+              .setName("channel")
+              .setDescription("The forum channel to stop watching")
+              .addChannelTypes(ChannelType.GuildForum)
+              .setRequired(true)
+          )
+      )
+      .addSubcommand((sub) =>
+        sub.setName("list").setDescription("List watched forum channels")
       )
   )
   .toJSON();
