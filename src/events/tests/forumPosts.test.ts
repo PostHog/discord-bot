@@ -1,20 +1,23 @@
 import { ChannelType, Events } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { forwardForumPost, isWatchedForum } = vi.hoisted(() => ({
+const { forwardForumPost, forwardMessage, isWatchedForum } = vi.hoisted(() => ({
   forwardForumPost: vi.fn(async () => {}),
+  forwardMessage: vi.fn(async () => {}),
   isWatchedForum: vi.fn(() => true),
 }));
-vi.mock("@/bridge/forward.js", () => ({ forwardForumPost }));
+vi.mock("@/bridge/forward.js", () => ({ forwardForumPost, forwardMessage }));
 vi.mock("@/db.js", () => ({ isWatchedForum }));
 
 const { register } = await import("@/events/forumPosts.js");
 
-function handler() {
-  const handlers = new Map<string, (...a: unknown[]) => Promise<void>>();
-  register({ on: (e: string, cb: never) => handlers.set(e, cb) } as never);
-  return handlers.get(Events.ThreadCreate)!;
+function handlers() {
+  const map = new Map<string, (...a: unknown[]) => Promise<void>>();
+  register({ on: (e: string, cb: never) => map.set(e, cb) } as never);
+  return map;
 }
+const handler = () => handlers().get(Events.ThreadCreate)!;
+const messageHandler = () => handlers().get(Events.MessageCreate)!;
 
 function thread(over: Record<string, unknown> = {}) {
   return {
@@ -98,5 +101,66 @@ describe("ThreadCreate → forum post forwarding", () => {
     await p;
     expect(fetchStarterMessage).toHaveBeenCalledTimes(2);
     expect(forwardForumPost).not.toHaveBeenCalled();
+  });
+});
+
+function message(over: Record<string, unknown> = {}) {
+  return {
+    id: "m1",
+    guildId: "g",
+    channelId: "t1",
+    content: "a reply",
+    author: { id: "u1", username: "alice", globalName: "Alice", bot: false },
+    channel: {
+      id: "t1",
+      isThread: () => true,
+      parent: { id: "fc", type: ChannelType.GuildForum },
+    },
+    ...over,
+  };
+}
+
+describe("MessageCreate → reply forwarding", () => {
+  it("forwards a reply in a watched forum thread", async () => {
+    await messageHandler()(message());
+    expect(forwardMessage).toHaveBeenCalledWith({
+      kind: "message",
+      guild_id: "g",
+      forum_channel_id: "fc",
+      thread_id: "t1",
+      message_id: "m1",
+      content: "a reply",
+      author: { id: "u1", username: "alice", global_name: "Alice", bot: false },
+    });
+  });
+
+  it("skips bot authors (no feedback loop on the agent's own replies)", async () => {
+    await messageHandler()(
+      message({ author: { id: "b", username: "bot", globalName: null, bot: true } })
+    );
+    expect(forwardMessage).not.toHaveBeenCalled();
+  });
+
+  it("skips the starter message (id === thread id)", async () => {
+    await messageHandler()(message({ id: "t1" }));
+    expect(forwardMessage).not.toHaveBeenCalled();
+  });
+
+  it("skips non-thread channels", async () => {
+    await messageHandler()(message({ channel: { isThread: () => false } }));
+    expect(forwardMessage).not.toHaveBeenCalled();
+  });
+
+  it("skips threads not under a forum", async () => {
+    await messageHandler()(
+      message({ channel: { id: "t1", isThread: () => true, parent: { type: ChannelType.GuildText } } })
+    );
+    expect(forwardMessage).not.toHaveBeenCalled();
+  });
+
+  it("skips unwatched forums", async () => {
+    isWatchedForum.mockReturnValue(false);
+    await messageHandler()(message());
+    expect(forwardMessage).not.toHaveBeenCalled();
   });
 });

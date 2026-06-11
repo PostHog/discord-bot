@@ -3,7 +3,7 @@
 A public, multi-tenant Discord bot that streams server-event analytics to **PostHog** and bridges Discord to **PostHog Code** via the `/ph` command. Anyone can add it to their server and configure it entirely in-Discord with slash commands.
 
 > [!NOTE]
-> Each server routes to its own PostHog project, and the bot never sends or stores message text, only metadata.
+> Each server routes to its own PostHog project. Analytics sends only metadata, never message text — the sole exception is content from forum channels an admin explicitly opts into via `/ph forums watch` (for the PostHog Code bridge).
 
 ## How it works
 
@@ -113,11 +113,16 @@ In any server the bot has joined, an admin runs:
   (~15 min) and the bot token afterwards.
 
 **Forum posts.** `/ph forums watch <forum>` (Manage Server, stored locally per
-guild) makes the bot forward each **new post** in that forum channel to the same
-ingest endpoint as `kind: "forum_post"` (title, starter-message content, applied
-tag names, author). Bots and archived threads are skipped; PostHog dedupes by
-`thread_id`, so a failed POST is retried once. This is fire-and-forget — there's
-no interaction to reply to.
+guild) makes the bot forward forum activity in that channel to the same ingest
+endpoint:
+- each **new post** as `kind: "forum_post"` (title, starter-message content,
+  applied tag names, author), and
+- each **reply** in those threads as `kind: "message"` (content, author, the
+  thread/forum ids) — that's how the original poster's follow-ups reach the agent.
+
+Bots (including this one, so the agent's own replies don't loop) and archived
+threads are skipped. PostHog dedupes by `thread_id` / `message_id`, so a failed
+POST is retried once. Both are fire-and-forget — there's no interaction to reply to.
 
 **Connecting a server.** `/ph connect` (Manage Server) forwards like any other
 command; PostHog replies with a short-lived signed URL. The admin opens it, logs
@@ -138,7 +143,8 @@ reachable by PostHog.
 
 ## Privacy
 
-- Raw message text is **never** sent to PostHog (only metadata).
+- **Analytics** never sends message text — only metadata.
+- The one exception is the **PostHog Code bridge**: in a forum an admin explicitly opts in with `/ph forums watch`, post and reply **content** is forwarded (that's the point — the agent needs it). Nothing is forwarded from unwatched channels.
 - Configuration (including the API key) is only ever shown to admins via **ephemeral** replies, and the key is masked in `/ph analytics status`.
 
 ## Deployment

@@ -3,8 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const { getGuildConfig } = vi.hoisted(() => ({ getGuildConfig: vi.fn() }));
 vi.mock("@/configCache.js", () => ({ getGuildConfig }));
 
-const { appHostForGuild, buildCommandPayload, fetchRepos, forwardForumPost, forwardInteraction } =
-  await import("@/bridge/forward.js");
+const {
+  appHostForGuild,
+  buildCommandPayload,
+  fetchRepos,
+  forwardForumPost,
+  forwardInteraction,
+  forwardMessage,
+} = await import("@/bridge/forward.js");
 const { config } = await import("@/config.js");
 
 const fetchMock = vi.fn();
@@ -176,6 +182,39 @@ describe("forwardForumPost", () => {
   it("never throws on a network error", async () => {
     fetchMock.mockRejectedValue(new Error("boom"));
     await expect(forwardForumPost(forumPayload)).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("forwardMessage", () => {
+  const messagePayload = {
+    kind: "message" as const,
+    guild_id: "g",
+    forum_channel_id: "fc",
+    thread_id: "t",
+    message_id: "m",
+    content: "a reply",
+    author: { id: "u", username: "n", global_name: null, bot: false },
+  };
+
+  it("POSTs a reply to the ingest endpoint with a bearer", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({ status: "accepted" }));
+    await forwardMessage(messagePayload);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://us.posthog.com/api/discord/interactions/ingest");
+    expect((init as { headers: Record<string, string> }).headers.Authorization).toBe(
+      "Bearer test-secret"
+    );
+    expect(JSON.parse((init as { body: string }).body)).toMatchObject({
+      kind: "message",
+      message_id: "m",
+      thread_id: "t",
+    });
+  });
+
+  it("retries once on a non-OK response", async () => {
+    fetchMock.mockResolvedValue(jsonResponse({}, false, 500));
+    await forwardMessage(messagePayload);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

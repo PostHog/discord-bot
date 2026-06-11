@@ -195,6 +195,13 @@ export async function forwardInteraction(
   }
 }
 
+interface AuthorRef {
+  id: string;
+  username: string;
+  global_name: string | null;
+  bot: boolean;
+}
+
 export interface ForumPostPayload {
   kind: "forum_post";
   guild_id: string;
@@ -203,24 +210,48 @@ export interface ForumPostPayload {
   title: string;
   content: string;
   tags: string[];
-  author: { id: string; username: string; global_name: string | null; bot: boolean };
+  author: AuthorRef;
+}
+
+export interface MessagePayload {
+  kind: "message";
+  guild_id: string;
+  forum_channel_id: string;
+  thread_id: string;
+  message_id: string;
+  content: string;
+  author: AuthorRef;
 }
 
 /**
- * Forward a new forum post to PostHog (fire-and-forget). PostHog dedupes by
- * `thread_id`, so a non-2xx is retried once; anything else is logged and dropped.
+ * Forward a non-interaction event to the ingest endpoint, fire-and-forget.
+ * PostHog dedupes by `thread_id` / `message_id`, so a non-2xx is retried once;
+ * anything else is logged and dropped (no Discord reply to drive).
  */
-export async function forwardForumPost(payload: ForumPostPayload): Promise<void> {
+async function ingestFireAndForget(
+  payload: { guild_id: string; kind: string },
+  label: string
+): Promise<void> {
   const url = `${appHostForGuild(payload.guild_id)}/api/discord/interactions/ingest`;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       const res = await postJson(url, payload, INGEST_TIMEOUT_MS);
       if (res.ok) return; // accepted or skipped — done
-      console.error(`[bridge] forum_post ingest returned ${res.status} (attempt ${attempt})`);
+      console.error(`[bridge] ${label} ingest returned ${res.status} (attempt ${attempt})`);
     } catch (err) {
-      console.error(`[bridge] forum_post forward failed (attempt ${attempt}):`, err);
+      console.error(`[bridge] ${label} forward failed (attempt ${attempt}):`, err);
     }
   }
+}
+
+/** Forward a new forum post (the thread + its starter message). */
+export function forwardForumPost(payload: ForumPostPayload): Promise<void> {
+  return ingestFireAndForget(payload, "forum_post");
+}
+
+/** Forward a reply message in a watched forum thread, so it reaches the agent. */
+export function forwardMessage(payload: MessagePayload): Promise<void> {
+  return ingestFireAndForget(payload, "message");
 }
 
 /** Autocomplete choice shape Discord expects. */
