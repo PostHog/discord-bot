@@ -139,6 +139,10 @@ provisioned — there's no separate setup step. Individual users separately
 account-link via the `identify` OAuth flow. Until then, forwarded commands get an
 ephemeral "link your account / connect this server" prompt.
 
+The full wire contract (every endpoint, op, payload, and flow) is in
+[`docs/discord-bridge-contract.md`](docs/discord-bridge-contract.md) — the
+authoritative spec for the PostHog side.
+
 Both directions authenticate with a single shared bearer secret
 (`POSTHOG_DISCORD_SHARED_SECRET`) and rely on TLS for transport security.
 Forwarded interactions are deduped on interaction id. The bot stores no state for
