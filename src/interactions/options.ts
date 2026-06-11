@@ -6,7 +6,7 @@ import {
 import { readGuildConfig, setOptions } from "@/db.js";
 import { nowMs } from "@/time.js";
 
-/** `/analytics options` → update bot-filtering and message sampling. */
+/** `/ph analytics options` → update bot-filtering and message sampling. */
 export async function handleOptionsCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {

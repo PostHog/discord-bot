@@ -7,13 +7,13 @@ import {
 import { countTriggers, readGuildConfig } from "@/db.js";
 import { EVENT_CATALOG } from "@/events-catalog.js";
 
-/** Mask an API key so `/analytics status` never echoes it in full. */
+/** Mask an API key so `/ph analytics status` never echoes it in full. */
 function maskKey(key: string): string {
   if (key.length <= 8) return "phc_…";
   return `${key.slice(0, 4)}…${key.slice(-4)}`;
 }
 
-/** `/analytics status` → show the current configuration as an ephemeral embed. */
+/** `/ph analytics status` → show the current configuration as an ephemeral embed. */
 export async function handleStatusCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
@@ -24,7 +24,7 @@ export async function handleStatusCommand(
   if (!cfg || !cfg.posthogApiKey) {
     await interaction.reply({
       content:
-        "This server isn't connected to PostHog yet. Run `/analytics setup` to get started.",
+        "This server isn't connected to PostHog yet. Run `/ph connect` to get started.",
       flags: MessageFlags.Ephemeral,
     });
     return;
@@ -57,7 +57,7 @@ export async function handleStatusCommand(
       },
       {
         name: "Custom triggers",
-        value: `${countTriggers(interaction.guildId)} (see \`/analytics trigger list\`)`,
+        value: `${countTriggers(interaction.guildId)} (see \`/ph triggers list\`)`,
         inline: false,
       }
     );

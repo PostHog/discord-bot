@@ -1,7 +1,7 @@
 /**
  * Canonical list of every event type the bot can send to PostHog. This is the
  * single source of truth used by:
- *   - the `/analytics events` select menu (what an admin can toggle)
+ *   - the `/ph analytics events` select menu (what an admin can toggle)
  *   - validation when persisting a guild's enabled-event set
  *   - the capture gate (an event is only sent if its key is enabled)
  *

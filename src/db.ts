@@ -9,7 +9,7 @@ import { sanitizeEventKeys } from "@/events-catalog.js";
 
 /**
  * Per-guild configuration as stored in SQLite. `posthogApiKey === null` means
- * the guild has not run `/analytics setup` yet, so the bot stays silent for it.
+ * the guild has not connected via `/ph connect` yet, so the bot stays silent for it.
  */
 export interface GuildConfig {
   guildId: string;
@@ -108,6 +108,18 @@ db.exec(`
     updated_at  INTEGER NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_triggers_guild ON triggers(guild_id);
+
+  CREATE TABLE IF NOT EXISTS watched_forums (
+    guild_id   TEXT NOT NULL,
+    channel_id TEXT NOT NULL,
+    PRIMARY KEY (guild_id, channel_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS watched_threads (
+    guild_id  TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    PRIMARY KEY (guild_id, thread_id)
+  );
 `);
 
 function rowToConfig(row: GuildConfigRow): GuildConfig {
@@ -225,13 +237,15 @@ const deleteAllTriggersStmt = db.prepare<[string]>(
 );
 
 /**
- * Remove everything stored for a guild — config and all triggers. Used when the
- * bot is removed from a server so we don't retain its PostHog key or settings.
- * (`triggers` has no FK to `guild_config`, so both must be deleted explicitly.)
+ * Remove everything stored for a guild — config, triggers, and watched forums.
+ * Used when the bot is removed from a server so we don't retain its PostHog key
+ * or settings. (No FK to `guild_config`, so each table is deleted explicitly.)
  */
 export function purgeGuild(guildId: string): void {
   deleteStmt.run(guildId);
   deleteAllTriggersStmt.run(guildId);
+  deleteAllWatchedForumsStmt.run(guildId);
+  deleteAllWatchedThreadsStmt.run(guildId);
   invalidateConfigCache(guildId);
   invalidateTriggersCache(guildId);
 }
@@ -350,6 +364,81 @@ export function setTriggerEnabled(
   const result = setTriggerEnabledStmt.run(enabled ? 1 : 0, now, guildId, id);
   invalidateTriggersCache(guildId);
   return result.changes > 0;
+}
+
+// ---------------------------------------------------------------------------
+// Watched forums (forum channels whose new posts are forwarded to PostHog Code)
+// ---------------------------------------------------------------------------
+
+const addWatchedForumStmt = db.prepare<[string, string]>(
+  "INSERT OR IGNORE INTO watched_forums (guild_id, channel_id) VALUES (?, ?)"
+);
+const removeWatchedForumStmt = db.prepare<[string, string]>(
+  "DELETE FROM watched_forums WHERE guild_id = ? AND channel_id = ?"
+);
+const listWatchedForumsStmt = db.prepare<[string]>(
+  "SELECT channel_id FROM watched_forums WHERE guild_id = ?"
+);
+const isWatchedForumStmt = db.prepare<[string, string]>(
+  "SELECT 1 FROM watched_forums WHERE guild_id = ? AND channel_id = ?"
+);
+const deleteAllWatchedForumsStmt = db.prepare<[string]>(
+  "DELETE FROM watched_forums WHERE guild_id = ?"
+);
+
+/** Start watching a forum channel. Returns true if it was newly added. */
+export function addWatchedForum(guildId: string, channelId: string): boolean {
+  return addWatchedForumStmt.run(guildId, channelId).changes > 0;
+}
+
+/** Stop watching a forum channel. Returns true if it was being watched. */
+export function removeWatchedForum(guildId: string, channelId: string): boolean {
+  return removeWatchedForumStmt.run(guildId, channelId).changes > 0;
+}
+
+/** All forum channel ids watched in a guild. */
+export function listWatchedForums(guildId: string): string[] {
+  return (listWatchedForumsStmt.all(guildId) as { channel_id: string }[]).map(
+    (r) => r.channel_id
+  );
+}
+
+/** Whether a specific forum channel is watched (hot path on thread creation). */
+export function isWatchedForum(guildId: string, channelId: string): boolean {
+  return isWatchedForumStmt.get(guildId, channelId) !== undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Watched threads (individual threads PostHog Code asks the bot to forward
+// replies from, e.g. a thread it created off a /ph code invocation)
+// ---------------------------------------------------------------------------
+
+const addWatchedThreadStmt = db.prepare<[string, string]>(
+  "INSERT OR IGNORE INTO watched_threads (guild_id, thread_id) VALUES (?, ?)"
+);
+const removeWatchedThreadStmt = db.prepare<[string, string]>(
+  "DELETE FROM watched_threads WHERE guild_id = ? AND thread_id = ?"
+);
+const isWatchedThreadStmt = db.prepare<[string, string]>(
+  "SELECT 1 FROM watched_threads WHERE guild_id = ? AND thread_id = ?"
+);
+const deleteAllWatchedThreadsStmt = db.prepare<[string]>(
+  "DELETE FROM watched_threads WHERE guild_id = ?"
+);
+
+/** Start forwarding replies from a thread. Returns true if newly added. */
+export function addWatchedThread(guildId: string, threadId: string): boolean {
+  return addWatchedThreadStmt.run(guildId, threadId).changes > 0;
+}
+
+/** Stop forwarding replies from a thread. Returns true if it was watched. */
+export function removeWatchedThread(guildId: string, threadId: string): boolean {
+  return removeWatchedThreadStmt.run(guildId, threadId).changes > 0;
+}
+
+/** Whether a specific thread is watched (hot path on every message). */
+export function isWatchedThread(guildId: string, threadId: string): boolean {
+  return isWatchedThreadStmt.get(guildId, threadId) !== undefined;
 }
 
 export function closeDb(): void {

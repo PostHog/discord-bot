@@ -13,7 +13,7 @@ import { nowMs } from "@/time.js";
 
 export const EVENTS_SELECT_ID = "analytics:events";
 
-/** `/analytics events` → show a multi-select of every event with current ones pre-checked. */
+/** `/ph analytics events` → show a multi-select of every event with current ones pre-checked. */
 export async function handleEventsCommand(
   interaction: ChatInputCommandInteraction
 ): Promise<void> {
@@ -40,7 +40,7 @@ export async function handleEventsCommand(
   const note =
     existing?.posthogApiKey
       ? "Pick the events you want streamed to PostHog:"
-      : "⚠️ This server isn't connected to PostHog yet — run `/analytics setup` " +
+      : "⚠️ This server isn't connected to PostHog yet — run `/ph connect` " +
         "first. You can still choose events now; they'll start sending once " +
         "you're connected.";
 

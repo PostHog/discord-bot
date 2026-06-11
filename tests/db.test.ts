@@ -3,14 +3,22 @@ import { describe, expect, it } from "vitest";
 import { getGuildConfig, invalidateConfigCache } from "@/configCache.js";
 import {
   addTrigger,
+  addWatchedForum,
+  addWatchedThread,
   clearConfig,
   countTriggers,
   DEFAULT_POSTHOG_HOST,
   getTrigger,
+  isWatchedForum,
+  isWatchedThread,
   listTriggers,
+  listWatchedForums,
   MAX_TRIGGERS_PER_GUILD,
+  purgeGuild,
   readGuildConfig,
   removeTrigger,
+  removeWatchedForum,
+  removeWatchedThread,
   setEnabledEvents,
   setOptions,
   setTriggerEnabled,
@@ -168,5 +176,61 @@ describe("triggers repo", () => {
       NOW
     );
     expect(getGuildTriggers(g)).toHaveLength(1);
+  });
+});
+
+describe("watched forums", () => {
+  it("adds, lists, checks, and removes idempotently", () => {
+    const g = guild();
+    expect(listWatchedForums(g)).toEqual([]);
+    expect(isWatchedForum(g, "f1")).toBe(false);
+
+    expect(addWatchedForum(g, "f1")).toBe(true);
+    expect(addWatchedForum(g, "f1")).toBe(false); // already watched
+    expect(addWatchedForum(g, "f2")).toBe(true);
+
+    expect(isWatchedForum(g, "f1")).toBe(true);
+    expect(new Set(listWatchedForums(g))).toEqual(new Set(["f1", "f2"]));
+
+    expect(removeWatchedForum(g, "f1")).toBe(true);
+    expect(removeWatchedForum(g, "f1")).toBe(false); // gone
+    expect(isWatchedForum(g, "f1")).toBe(false);
+    expect(listWatchedForums(g)).toEqual(["f2"]);
+  });
+
+  it("scopes watches per guild", () => {
+    const a = guild();
+    const b = guild();
+    addWatchedForum(a, "shared");
+    expect(isWatchedForum(b, "shared")).toBe(false);
+  });
+
+  it("is cleared by purgeGuild", () => {
+    const g = guild();
+    addWatchedForum(g, "f1");
+    purgeGuild(g);
+    expect(listWatchedForums(g)).toEqual([]);
+  });
+});
+
+describe("watched threads", () => {
+  it("adds, checks, and removes idempotently, scoped per guild", () => {
+    const g = guild();
+    expect(isWatchedThread(g, "t1")).toBe(false);
+    expect(addWatchedThread(g, "t1")).toBe(true);
+    expect(addWatchedThread(g, "t1")).toBe(false);
+    expect(isWatchedThread(g, "t1")).toBe(true);
+    expect(isWatchedThread(guild(), "t1")).toBe(false); // other guild
+
+    expect(removeWatchedThread(g, "t1")).toBe(true);
+    expect(removeWatchedThread(g, "t1")).toBe(false);
+    expect(isWatchedThread(g, "t1")).toBe(false);
+  });
+
+  it("is cleared by purgeGuild", () => {
+    const g = guild();
+    addWatchedThread(g, "t1");
+    purgeGuild(g);
+    expect(isWatchedThread(g, "t1")).toBe(false);
   });
 });

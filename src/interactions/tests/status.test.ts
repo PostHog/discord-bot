@@ -21,11 +21,11 @@ beforeEach(() => {
 });
 
 describe("handleStatusCommand", () => {
-  it("tells unconnected servers to run setup", async () => {
+  it("tells unconnected servers to run /ph connect", async () => {
     readMock.mockReturnValue(null);
     const i = interaction();
     await handleStatusCommand(i as never);
-    expect((i.reply.mock.calls[0][0] as { content: string }).content).toContain("setup");
+    expect((i.reply.mock.calls[0][0] as { content: string }).content).toContain("/ph connect");
   });
 
   it("masks the project key in the status embed", async () => {

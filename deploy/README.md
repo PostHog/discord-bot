@@ -75,13 +75,21 @@ sudo mkdir -p /opt/discord-bot/data
 sudo tee /opt/discord-bot/.env > /dev/null <<'EOF'
 DISCORD_BOT_TOKEN=your-real-bot-token
 DISCORD_APPLICATION_ID=your-real-application-id
+# PostHog Code bridge — both are required; the secret must match PostHog's.
+POSTHOG_DISCORD_SHARED_SECRET=your-shared-secret
+BOT_ACTIONS_BIND=0.0.0.0:8080
 EOF
 sudo chmod 600 /opt/discord-bot/.env
 sudo chown -R discordbot:discordbot /opt/discord-bot
 ```
 
 `DATABASE_PATH` is set by the systemd unit below, so it doesn't need to be in
-`.env`. See `.env.example` for the full list of optional variables.
+`.env`. See `.env.example` for the full list of variables.
+
+The bot exposes an **actions API** on `BOT_ACTIONS_BIND` that PostHog Code calls
+back to drive Discord. PostHog must be able to reach it, so open that port to
+PostHog (e.g. a security-group/firewall rule) and front it with TLS — the bridge
+authenticates with a bearer secret and relies on TLS for transport security.
 
 ## 5. Install and start the service
 
@@ -126,17 +134,30 @@ hand). Both scopes are required — `applications.commands` is what makes the
 slash commands show up:
 
 ```
-https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=66560
+https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=292057861184
 ```
 
-`permissions=66560` = **View Channels** + **Read Message History**. Everything
-else the bot needs (members, reactions, voice, bans) arrives via gateway
-intents, not channel permissions.
+`permissions=292057861184` covers what the bridge actions API needs to act in a
+channel: **View Channels**, **Read Message History**, **Send Messages**, **Send
+Messages in Threads**, **Create Public Threads**, **Add Reactions**, and **Embed
+Links**. (Add **Manage Messages** only if PostHog will delete *other* users'
+messages; the bot needs nothing extra to delete its own. Add **Attach Files** to
+upload files.) Analytics signals (members, voice, bans) arrive via gateway
+intents, not channel permissions. Easiest is to tick these boxes in the URL
+Generator and let it compute the integer.
 
-On join, the bot registers `/analytics` for that guild automatically (instant).
-When it's removed from a server, it deletes its stored config for that guild and
+Forum forwarding (`/ph forums watch`) relies on **View Channel** + **Send
+Messages in Threads** on the watched forum — both are in the set above, but make
+sure a per-channel override on that forum doesn't remove them.
+
+The **account-link** flow is a separate OAuth authorization PostHog initiates per
+user (`DISCORD_APP_CLIENT_ID`/`SECRET`), using only the `identify` scope — it is
+not part of this invite URL.
+
+On join, the bot registers `/ph` for that guild automatically (instant). When
+it's removed from a server, it deletes its stored config for that guild and
 Discord drops the commands — no manual cleanup. Then configure it in-server with
-`/analytics setup` (see the top-level [README](../README.md#per-server-usage)).
+`/ph connect` (see the top-level [README](../README.md#per-server-usage)).
 
 > A server that was added *before* auto-registration shipped won't have the
 > commands. Kick and re-add the bot once to trigger registration.
