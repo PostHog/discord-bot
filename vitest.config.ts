@@ -15,6 +15,10 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Run each test file in its own process. better-sqlite3 is a native addon
+    // that can't be loaded into multiple worker threads of one process
+    // (ERR_DLOPEN_FAILED); forks give each file a fresh process.
+    pool: "forks",
     // Tests live both in the top-level tests/ dir and in per-module tests/ dirs.
     include: ["tests/**/*.test.ts", "src/**/*.test.ts"],
     // config.ts requires these at import time; db tests use an in-memory SQLite.

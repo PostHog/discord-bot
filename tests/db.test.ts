@@ -4,11 +4,13 @@ import { getGuildConfig, invalidateConfigCache } from "@/configCache.js";
 import {
   addTrigger,
   addWatchedForum,
+  addWatchedThread,
   clearConfig,
   countTriggers,
   DEFAULT_POSTHOG_HOST,
   getTrigger,
   isWatchedForum,
+  isWatchedThread,
   listTriggers,
   listWatchedForums,
   MAX_TRIGGERS_PER_GUILD,
@@ -16,6 +18,7 @@ import {
   readGuildConfig,
   removeTrigger,
   removeWatchedForum,
+  removeWatchedThread,
   setEnabledEvents,
   setOptions,
   setTriggerEnabled,
@@ -207,5 +210,27 @@ describe("watched forums", () => {
     addWatchedForum(g, "f1");
     purgeGuild(g);
     expect(listWatchedForums(g)).toEqual([]);
+  });
+});
+
+describe("watched threads", () => {
+  it("adds, checks, and removes idempotently, scoped per guild", () => {
+    const g = guild();
+    expect(isWatchedThread(g, "t1")).toBe(false);
+    expect(addWatchedThread(g, "t1")).toBe(true);
+    expect(addWatchedThread(g, "t1")).toBe(false);
+    expect(isWatchedThread(g, "t1")).toBe(true);
+    expect(isWatchedThread(guild(), "t1")).toBe(false); // other guild
+
+    expect(removeWatchedThread(g, "t1")).toBe(true);
+    expect(removeWatchedThread(g, "t1")).toBe(false);
+    expect(isWatchedThread(g, "t1")).toBe(false);
+  });
+
+  it("is cleared by purgeGuild", () => {
+    const g = guild();
+    addWatchedThread(g, "t1");
+    purgeGuild(g);
+    expect(isWatchedThread(g, "t1")).toBe(false);
   });
 });

@@ -10,7 +10,12 @@ import { Routes } from "discord.js";
 import { verifyBearer } from "@/bridge/auth.js";
 import { rest } from "@/bridge/discordRest.js";
 import { applicationId } from "@/bridge/forward.js";
-import { clearConfig, upsertPosthog } from "@/db.js";
+import {
+  addWatchedThread,
+  clearConfig,
+  removeWatchedThread,
+  upsertPosthog,
+} from "@/db.js";
 import { hostForRegion } from "@/regions.js";
 import { nowMs } from "@/time.js";
 
@@ -139,6 +144,20 @@ export async function handleAction(op: string, fields: Fields): Promise<ActionRe
       } else {
         clearConfig(guildId);
       }
+      return { status: 200, body: { ok: true } };
+    }
+
+    case "watch_thread":
+    case "unwatch_thread": {
+      // Register/unregister a thread so its replies are forwarded as kind:"message"
+      // (e.g. a thread PostHog Code created off a /ph code invocation).
+      const guildId = str(fields.guild_id);
+      const threadId = str(fields.thread_id);
+      if (!guildId || !threadId) {
+        return { status: 400, body: { error: "missing guild_id or thread_id" } };
+      }
+      if (op === "watch_thread") addWatchedThread(guildId, threadId);
+      else removeWatchedThread(guildId, threadId);
       return { status: 200, body: { ok: true } };
     }
 

@@ -7,7 +7,7 @@ import {
 } from "discord.js";
 
 import { forwardForumPost, forwardMessage } from "@/bridge/forward.js";
-import { isWatchedForum } from "@/db.js";
+import { isWatchedForum, isWatchedThread } from "@/db.js";
 
 const STARTER_RETRY_MS = 1000;
 
@@ -44,9 +44,16 @@ export function register(client: Client): void {
 
     const channel = message.channel;
     if (!channel.isThread()) return;
+
+    // Forward replies in a watched forum's threads OR in an individually watched
+    // thread (e.g. one PostHog Code created off a /ph code invocation).
     const forum = channel.parent;
-    if (forum?.type !== ChannelType.GuildForum) return;
-    if (!isWatchedForum(message.guildId, forum.id)) return;
+    const forumId = forum?.type === ChannelType.GuildForum ? forum.id : null;
+    const watched =
+      (forumId !== null && isWatchedForum(message.guildId, forumId)) ||
+      isWatchedThread(message.guildId, channel.id);
+    if (!watched) return;
+
     // The starter message shares the thread's id and is already sent as the
     // forum_post; only forward genuine replies.
     if (message.id === channel.id) return;
@@ -54,7 +61,7 @@ export function register(client: Client): void {
     await forwardMessage({
       kind: "message",
       guild_id: message.guildId,
-      forum_channel_id: forum.id,
+      forum_channel_id: forumId,
       thread_id: channel.id,
       message_id: message.id,
       content: message.content,

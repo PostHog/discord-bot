@@ -114,6 +114,12 @@ db.exec(`
     channel_id TEXT NOT NULL,
     PRIMARY KEY (guild_id, channel_id)
   );
+
+  CREATE TABLE IF NOT EXISTS watched_threads (
+    guild_id  TEXT NOT NULL,
+    thread_id TEXT NOT NULL,
+    PRIMARY KEY (guild_id, thread_id)
+  );
 `);
 
 function rowToConfig(row: GuildConfigRow): GuildConfig {
@@ -239,6 +245,7 @@ export function purgeGuild(guildId: string): void {
   deleteStmt.run(guildId);
   deleteAllTriggersStmt.run(guildId);
   deleteAllWatchedForumsStmt.run(guildId);
+  deleteAllWatchedThreadsStmt.run(guildId);
   invalidateConfigCache(guildId);
   invalidateTriggersCache(guildId);
 }
@@ -399,6 +406,39 @@ export function listWatchedForums(guildId: string): string[] {
 /** Whether a specific forum channel is watched (hot path on thread creation). */
 export function isWatchedForum(guildId: string, channelId: string): boolean {
   return isWatchedForumStmt.get(guildId, channelId) !== undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Watched threads (individual threads PostHog Code asks the bot to forward
+// replies from, e.g. a thread it created off a /ph code invocation)
+// ---------------------------------------------------------------------------
+
+const addWatchedThreadStmt = db.prepare<[string, string]>(
+  "INSERT OR IGNORE INTO watched_threads (guild_id, thread_id) VALUES (?, ?)"
+);
+const removeWatchedThreadStmt = db.prepare<[string, string]>(
+  "DELETE FROM watched_threads WHERE guild_id = ? AND thread_id = ?"
+);
+const isWatchedThreadStmt = db.prepare<[string, string]>(
+  "SELECT 1 FROM watched_threads WHERE guild_id = ? AND thread_id = ?"
+);
+const deleteAllWatchedThreadsStmt = db.prepare<[string]>(
+  "DELETE FROM watched_threads WHERE guild_id = ?"
+);
+
+/** Start forwarding replies from a thread. Returns true if newly added. */
+export function addWatchedThread(guildId: string, threadId: string): boolean {
+  return addWatchedThreadStmt.run(guildId, threadId).changes > 0;
+}
+
+/** Stop forwarding replies from a thread. Returns true if it was watched. */
+export function removeWatchedThread(guildId: string, threadId: string): boolean {
+  return removeWatchedThreadStmt.run(guildId, threadId).changes > 0;
+}
+
+/** Whether a specific thread is watched (hot path on every message). */
+export function isWatchedThread(guildId: string, threadId: string): boolean {
+  return isWatchedThreadStmt.get(guildId, threadId) !== undefined;
 }
 
 export function closeDb(): void {

@@ -1,13 +1,16 @@
 import { ChannelType, Events } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { forwardForumPost, forwardMessage, isWatchedForum } = vi.hoisted(() => ({
-  forwardForumPost: vi.fn(async () => {}),
-  forwardMessage: vi.fn(async () => {}),
-  isWatchedForum: vi.fn(() => true),
-}));
+const { forwardForumPost, forwardMessage, isWatchedForum, isWatchedThread } = vi.hoisted(
+  () => ({
+    forwardForumPost: vi.fn(async () => {}),
+    forwardMessage: vi.fn(async () => {}),
+    isWatchedForum: vi.fn(() => true),
+    isWatchedThread: vi.fn(() => false),
+  })
+);
 vi.mock("@/bridge/forward.js", () => ({ forwardForumPost, forwardMessage }));
-vi.mock("@/db.js", () => ({ isWatchedForum }));
+vi.mock("@/db.js", () => ({ isWatchedForum, isWatchedThread }));
 
 const { register } = await import("@/events/forumPosts.js");
 
@@ -42,6 +45,7 @@ function thread(over: Record<string, unknown> = {}) {
 beforeEach(() => {
   vi.clearAllMocks();
   isWatchedForum.mockReturnValue(true);
+  isWatchedThread.mockReturnValue(false);
 });
 afterEach(() => vi.useRealTimers());
 
@@ -162,5 +166,16 @@ describe("MessageCreate → reply forwarding", () => {
     isWatchedForum.mockReturnValue(false);
     await messageHandler()(message());
     expect(forwardMessage).not.toHaveBeenCalled();
+  });
+
+  it("forwards in an individually watched non-forum thread (forum_channel_id null)", async () => {
+    isWatchedForum.mockReturnValue(false);
+    isWatchedThread.mockReturnValue(true);
+    await messageHandler()(
+      message({ channel: { id: "t1", isThread: () => true, parent: { type: ChannelType.GuildText } } })
+    );
+    expect(forwardMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "message", thread_id: "t1", forum_channel_id: null })
+    );
   });
 });

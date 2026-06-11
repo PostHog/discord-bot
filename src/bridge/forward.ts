@@ -216,7 +216,8 @@ export interface ForumPostPayload {
 export interface MessagePayload {
   kind: "message";
   guild_id: string;
-  forum_channel_id: string;
+  /** The parent forum channel id for forum threads; null for other watched threads. */
+  forum_channel_id: string | null;
   thread_id: string;
   message_id: string;
   content: string;

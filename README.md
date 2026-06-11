@@ -124,6 +124,11 @@ Bots (including this one, so the agent's own replies don't loop) and archived
 threads are skipped. PostHog dedupes by `thread_id` / `message_id`, so a failed
 POST is retried once. Both are fire-and-forget — there's no interaction to reply to.
 
+PostHog can also forward replies from **any** thread (e.g. one it created off a
+`/ph code` task, not just forum posts) by registering it through the actions API
+(`op: "watch_thread"` / `"unwatch_thread"` with `guild_id` + `thread_id`). Those
+threads are tracked locally and cleared on guild removal.
+
 **Connecting a server.** `/ph connect` (Manage Server) forwards like any other
 command; PostHog replies with a short-lived signed URL. The admin opens it, logs
 into PostHog, and confirms binding the server to a project — PostHog verifies

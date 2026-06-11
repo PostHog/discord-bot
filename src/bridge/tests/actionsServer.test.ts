@@ -9,7 +9,7 @@ const { rest } = vi.hoisted(() => ({
 vi.mock("@/bridge/discordRest.js", () => ({ rest }));
 
 const { createActionsServer, handleAction } = await import("@/bridge/actionsServer.js");
-const { readGuildConfig } = await import("@/db.js"); // real in-memory SQLite
+const { readGuildConfig, isWatchedThread } = await import("@/db.js"); // real in-memory SQLite
 
 // vitest.config sets DISCORD_APPLICATION_ID = "test-app".
 const APP = "test-app";
@@ -102,6 +102,20 @@ describe("handleAction", () => {
   it("connect_guild requires a guild_id", async () => {
     const res = await handleAction("connect_guild", { project_api_key: "phc_x" });
     expect(res.status).toBe(400);
+  });
+
+  it("watch_thread / unwatch_thread register and clear a thread", async () => {
+    const watch = await handleAction("watch_thread", { guild_id: "g-wt", thread_id: "th1" });
+    expect(watch).toEqual({ status: 200, body: { ok: true } });
+    expect(isWatchedThread("g-wt", "th1")).toBe(true);
+
+    await handleAction("unwatch_thread", { guild_id: "g-wt", thread_id: "th1" });
+    expect(isWatchedThread("g-wt", "th1")).toBe(false);
+  });
+
+  it("watch_thread requires guild_id and thread_id", async () => {
+    expect((await handleAction("watch_thread", { guild_id: "g" })).status).toBe(400);
+    expect((await handleAction("watch_thread", { thread_id: "t" })).status).toBe(400);
   });
 });
 
