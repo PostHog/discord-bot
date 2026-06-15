@@ -50,7 +50,12 @@ describe("appHostForGuild", () => {
 });
 
 describe("buildCommandPayload", () => {
-  function chatInput(group: string | null, sub: string, leaf: { name: string; value: unknown }[]) {
+  function chatInput(
+    group: string | null,
+    sub: string,
+    leaf: { name: string; value: unknown }[],
+    isThread = false
+  ) {
     const leafOpts = leaf.map((o) => ({ name: o.name, value: o.value }));
     const data = group
       ? [{ name: group, type: 2, options: [{ name: sub, type: 1, options: leafOpts }] }]
@@ -64,6 +69,7 @@ describe("buildCommandPayload", () => {
       guildId: "g",
       guild: { name: "My Server" },
       channelId: "c",
+      channel: { isThread: () => isThread },
       user: { id: "u", username: "name", globalName: "Global" },
       id: "iid",
       token: "tok",
@@ -98,6 +104,15 @@ describe("buildCommandPayload", () => {
     expect(p.subcommand).toBeNull();
     expect(p.options).toEqual({ prompt: "fix it" });
   });
+
+  it("flags channel_is_thread so PostHog runs in-thread instead of nesting", () => {
+    expect(
+      buildCommandPayload(chatInput(null, "code", [], false) as never).channel_is_thread
+    ).toBe(false);
+    expect(
+      buildCommandPayload(chatInput(null, "code", [], true) as never).channel_is_thread
+    ).toBe(true);
+  });
 });
 
 describe("forwardInteraction", () => {
@@ -106,6 +121,7 @@ describe("forwardInteraction", () => {
     guild_id: "g",
     guild_name: "My Server",
     channel_id: "c",
+    channel_is_thread: false,
     user: { id: "u", username: "n", global_name: null },
     interaction_id: "i",
     interaction_token: "t",

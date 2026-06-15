@@ -1,6 +1,6 @@
 import type { AddressInfo } from "node:net";
 
-import { Routes } from "discord.js";
+import { DiscordAPIError, Routes } from "discord.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { rest } = vi.hoisted(() => ({
@@ -26,6 +26,35 @@ describe("handleAction", () => {
     });
     expect(rest.post).toHaveBeenCalledWith(Routes.threads("c", "m"), { body: { name: "Topic" } });
     expect(res).toEqual({ status: 200, body: { thread_id: "t1" } });
+  });
+
+  it("create_thread on a channel that is already a thread reuses it", async () => {
+    rest.post.mockRejectedValue(
+      new DiscordAPIError(
+        { message: "Cannot execute action on this channel type", code: 50024 },
+        50024,
+        400,
+        "POST",
+        "https://discord.com/api/v10/channels/c/threads",
+        { body: {} }
+      )
+    );
+    const res = await handleAction("create_thread", { channel_id: "c", name: "Topic" });
+    expect(res).toEqual({ status: 200, body: { thread_id: "c" } });
+  });
+
+  it("create_thread rethrows unrelated Discord errors", async () => {
+    rest.post.mockRejectedValue(
+      new DiscordAPIError(
+        { message: "Missing Access", code: 50001 },
+        50001,
+        403,
+        "POST",
+        "https://discord.com/api/v10/channels/c/threads",
+        { body: {} }
+      )
+    );
+    await expect(handleAction("create_thread", { channel_id: "c", name: "Topic" })).rejects.toThrow();
   });
 
   it("post_message to a channel uses bot auth", async () => {
