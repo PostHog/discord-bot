@@ -6,7 +6,7 @@ import {
   type ThreadChannel,
 } from "discord.js";
 
-import { CONTEXT_LIMIT, fetchChannelContext, resolveRepliedTo } from "@/bridge/context.js";
+import { resolveRepliedTo } from "@/bridge/context.js";
 import { forwardForumPost, forwardMessage } from "@/bridge/forward.js";
 import { isWatchedForum, isWatchedThread } from "@/db.js";
 
@@ -59,16 +59,11 @@ export function register(client: Client): void {
     // forum_post; only forward genuine replies.
     if (message.id === channel.id) return;
 
-    // Pull the thread's running discussion (minus this message, already in
-    // `content`) and the replied-to message, so the agent sees what's referred
-    // to. Both are best-effort and resolve to []/null on failure.
-    const [context, repliedTo] = await Promise.all([
-      fetchChannelContext(channel, {
-        limit: CONTEXT_LIMIT,
-        excludeMessageId: message.id,
-      }),
-      resolveRepliedTo(message),
-    ]);
+    // PostHog already accumulates the running thread (every message is forwarded
+    // as it arrives, keyed by thread_id), so a reply only needs to point at the
+    // message it answers. Best-effort: null when it isn't a reply or the
+    // referenced message is gone.
+    const repliedTo = await resolveRepliedTo(message);
 
     await forwardMessage({
       kind: "message",
@@ -83,7 +78,6 @@ export function register(client: Client): void {
         global_name: message.author.globalName ?? null,
         bot: message.author.bot,
       },
-      context,
       replied_to: repliedTo,
     });
   });

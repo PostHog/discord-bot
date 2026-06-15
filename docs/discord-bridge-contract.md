@@ -90,10 +90,10 @@ bot. Forum activity (below) also arrives here.
 - `/ph connect` → `command:"connect"`, `options:{ project_id? }`
 - `channel_is_thread` — true when the command ran in a thread (run the task in
   that thread instead of nesting a new one).
-- `context` — up to 50 recent messages from the command's channel/thread,
-  **oldest-first**, so prompts like "review this" resolve against the
-  surrounding discussion. The bot's own deferred reply is excluded. Omitted/empty
-  when the channel can't be paged. Present on `code`; not meaningful for `connect`.
+- `context` — **only when `/ph code` runs inside a thread**: up to 50 recent
+  thread messages, **oldest-first**, so prompts like "review this" resolve
+  against the thread. The bot's own deferred reply is excluded. Omitted outside a
+  thread (a busy channel's backlog is noise) or when history can't be paged.
 
 **Components** (buttons / selects PostHog rendered) — `kind:"component"`, adds
 `message_id`, `custom_id`, `values:[...]`. **Modals** — `kind:"modal_submit"`,
@@ -140,7 +140,6 @@ Reply in a watched thread (`kind:"message"`):
   "message_id": "...",
   "content": "...",
   "author": { "id": "...", "username": "...", "global_name": "...", "bot": false },
-  "context": [ /* same shape as command `context`, oldest-first, this message excluded */ ],
   "replied_to": {
     "id": "string",
     "author": { "id": "...", "username": "...", "global_name": "...", "bot": false },
@@ -153,10 +152,10 @@ Reply in a watched thread (`kind:"message"`):
 Replies come from threads under a watched forum **or** any thread registered via
 `watch_thread` (below). Bot authors (incl. the bot itself) are skipped, so the
 agent's own posts don't loop. Map replies to a task by `thread_id`.
-- `context` — up to 50 recent messages in the thread (oldest-first, excluding
-  this reply); empty when history can't be paged.
-- `replied_to` — the message this one is a Discord reply to, or `null` when it
-  isn't a reply (or the referenced message was deleted).
+- `replied_to` — the single message this one is a Discord reply to, or `null`
+  when it isn't a reply (or the referenced message was deleted). No bulk thread
+  history is sent here: you already accumulate the thread via `thread_id`, so a
+  reply only needs to name the message it answers.
 
 ---
 

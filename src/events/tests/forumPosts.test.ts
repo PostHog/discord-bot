@@ -108,35 +108,6 @@ describe("ThreadCreate → forum post forwarding", () => {
   });
 });
 
-// A prior message in the thread plus the current reply; fetchChannelContext
-// drops the current one (`excludeMessageId`) and keeps the earlier history.
-function history() {
-  return new Map([
-    [
-      "m0",
-      {
-        id: "m0",
-        content: "earlier question",
-        createdTimestamp: 1_000,
-        author: { id: "u2", username: "bob", globalName: "Bob", bot: false },
-        reference: null,
-        interactionMetadata: null,
-      },
-    ],
-    [
-      "m1",
-      {
-        id: "m1",
-        content: "a reply",
-        createdTimestamp: 2_000,
-        author: { id: "u1", username: "alice", globalName: "Alice", bot: false },
-        reference: null,
-        interactionMetadata: null,
-      },
-    ],
-  ]);
-}
-
 function message(over: Record<string, unknown> = {}) {
   return {
     id: "m1",
@@ -150,14 +121,13 @@ function message(over: Record<string, unknown> = {}) {
       id: "t1",
       isThread: () => true,
       parent: { id: "fc", type: ChannelType.GuildForum },
-      messages: { fetch: vi.fn(async () => history()) },
     },
     ...over,
   };
 }
 
 describe("MessageCreate → reply forwarding", () => {
-  it("forwards a reply with thread history and a null replied_to", async () => {
+  it("forwards a plain message with a null replied_to (no thread history)", async () => {
     await messageHandler()(message());
     expect(forwardMessage).toHaveBeenCalledWith({
       kind: "message",
@@ -167,10 +137,6 @@ describe("MessageCreate → reply forwarding", () => {
       message_id: "m1",
       content: "a reply",
       author: { id: "u1", username: "alice", global_name: "Alice", bot: false },
-      // current message excluded; earlier history kept, oldest-first.
-      context: [
-        expect.objectContaining({ id: "m0", content: "earlier question" }),
-      ],
       replied_to: null,
     });
   });

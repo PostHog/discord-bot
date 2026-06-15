@@ -59,13 +59,16 @@ export async function handleCodeCommand(
 ): Promise<void> {
   if (!markSeen(interaction.id)) return;
   await interaction.deferReply();
-  // Gather the surrounding conversation so the prompt's references resolve.
-  // Done after the defer (which posts our own "thinking" reply — excluded by
-  // interaction id) to stay within Discord's 3 s ack window.
+  // In a thread, forward the thread's recent history so prompt references like
+  // "this" resolve. Done after the defer (which posts our own "thinking" reply,
+  // excluded by interaction id) to stay within Discord's 3 s ack window. Outside
+  // a thread there's no focused conversation to attach.
   const payload = buildCommandPayload(interaction);
-  payload.context = await fetchChannelContext(interaction.channel, {
-    excludeInteractionId: interaction.id,
-  });
+  if (interaction.channel?.isThread()) {
+    payload.context = await fetchChannelContext(interaction.channel, {
+      excludeInteractionId: interaction.id,
+    });
+  }
   const res = await forwardInteraction(payload);
   await applyForwardResult(interaction, res, true);
 }

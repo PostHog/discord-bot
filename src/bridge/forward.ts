@@ -35,8 +35,9 @@ export interface ForwardPayload {
   /** True when the interaction's channel is itself a thread (threads can't nest). */
   channel_is_thread: boolean;
   /**
-   * Recent channel/thread history (oldest-first) so the agent can resolve
-   * references like "this" in a `/ph code` prompt. Omitted when unavailable.
+   * Recent thread history (oldest-first) so the agent can resolve references
+   * like "this" in a `/ph code` prompt run inside a thread. Omitted outside a
+   * thread or when history can't be paged.
    */
   context?: ContextMessage[];
 }
@@ -233,8 +234,6 @@ export interface MessagePayload {
   message_id: string;
   content: string;
   author: AuthorRef;
-  /** Recent thread history (oldest-first), excluding this message. */
-  context?: ContextMessage[];
   /** The message this one replies to, when it's a Discord reply; else null. */
   replied_to?: ContextMessage | null;
 }
