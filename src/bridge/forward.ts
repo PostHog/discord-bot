@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 
 import { bearerHeaders } from "@/bridge/auth.js";
+import type { ContextMessage } from "@/bridge/context.js";
 import { config } from "@/config.js";
 import { getGuildConfig } from "@/configCache.js";
 
@@ -33,6 +34,11 @@ export interface ForwardPayload {
   application_id: string;
   /** True when the interaction's channel is itself a thread (threads can't nest). */
   channel_is_thread: boolean;
+  /**
+   * Recent channel/thread history (oldest-first) so the agent can resolve
+   * references like "this" in a `/ph code` prompt. Omitted when unavailable.
+   */
+  context?: ContextMessage[];
 }
 
 /** PostHog's synchronous reply to a forward. */
@@ -227,6 +233,10 @@ export interface MessagePayload {
   message_id: string;
   content: string;
   author: AuthorRef;
+  /** Recent thread history (oldest-first), excluding this message. */
+  context?: ContextMessage[];
+  /** The message this one replies to, when it's a Discord reply; else null. */
+  replied_to?: ContextMessage | null;
 }
 
 /**

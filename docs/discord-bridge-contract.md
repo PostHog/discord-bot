@@ -73,11 +73,27 @@ bot. Forum activity (below) also arrives here.
   "options": { "prompt": "...", "repo": "owner/repo", "project_id": "..." },
   "interaction_id": "string",
   "interaction_token": "string (valid ~15 min)",
-  "application_id": "string"
+  "application_id": "string",
+  "channel_is_thread": false,
+  "context": [
+    {
+      "id": "string",
+      "author": { "id": "...", "username": "...", "global_name": "...", "bot": false },
+      "content": "...",
+      "timestamp": "ISO-8601",
+      "reply_to_id": "string|null"
+    }
+  ]
 }
 ```
 - `/ph code` → `command:"code"`, `options:{ prompt, repo? }`
 - `/ph connect` → `command:"connect"`, `options:{ project_id? }`
+- `channel_is_thread` — true when the command ran in a thread (run the task in
+  that thread instead of nesting a new one).
+- `context` — up to 50 recent messages from the command's channel/thread,
+  **oldest-first**, so prompts like "review this" resolve against the
+  surrounding discussion. The bot's own deferred reply is excluded. Omitted/empty
+  when the channel can't be paged. Present on `code`; not meaningful for `connect`.
 
 **Components** (buttons / selects PostHog rendered) — `kind:"component"`, adds
 `message_id`, `custom_id`, `values:[...]`. **Modals** — `kind:"modal_submit"`,
@@ -123,12 +139,24 @@ Reply in a watched thread (`kind:"message"`):
   "thread_id": "...",
   "message_id": "...",
   "content": "...",
-  "author": { "id": "...", "username": "...", "global_name": "...", "bot": false }
+  "author": { "id": "...", "username": "...", "global_name": "...", "bot": false },
+  "context": [ /* same shape as command `context`, oldest-first, this message excluded */ ],
+  "replied_to": {
+    "id": "string",
+    "author": { "id": "...", "username": "...", "global_name": "...", "bot": false },
+    "content": "...",
+    "timestamp": "ISO-8601",
+    "reply_to_id": "string|null"
+  }
 }
 ```
 Replies come from threads under a watched forum **or** any thread registered via
 `watch_thread` (below). Bot authors (incl. the bot itself) are skipped, so the
 agent's own posts don't loop. Map replies to a task by `thread_id`.
+- `context` — up to 50 recent messages in the thread (oldest-first, excluding
+  this reply); empty when history can't be paged.
+- `replied_to` — the message this one is a Discord reply to, or `null` when it
+  isn't a reply (or the referenced message was deleted).
 
 ---
 
