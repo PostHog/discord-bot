@@ -6,6 +6,7 @@ import {
   type ModalSubmitInteraction,
 } from "discord.js";
 
+import { fetchChannelContext } from "@/bridge/context.js";
 import { markSeen } from "@/bridge/dedupe.js";
 import {
   buildCommandPayload,
@@ -58,7 +59,17 @@ export async function handleCodeCommand(
 ): Promise<void> {
   if (!markSeen(interaction.id)) return;
   await interaction.deferReply();
-  const res = await forwardInteraction(buildCommandPayload(interaction));
+  // In a thread, forward the thread's recent history so prompt references like
+  // "this" resolve. Done after the defer (which posts our own "thinking" reply,
+  // excluded by interaction id) to stay within Discord's 3 s ack window. Outside
+  // a thread there's no focused conversation to attach.
+  const payload = buildCommandPayload(interaction);
+  if (interaction.channel?.isThread()) {
+    payload.context = await fetchChannelContext(interaction.channel, {
+      excludeInteractionId: interaction.id,
+    });
+  }
+  const res = await forwardInteraction(payload);
   await applyForwardResult(interaction, res, true);
 }
 

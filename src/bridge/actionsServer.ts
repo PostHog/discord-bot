@@ -5,7 +5,7 @@ import {
   type ServerResponse,
 } from "node:http";
 
-import { Routes } from "discord.js";
+import { DiscordAPIError, Routes } from "discord.js";
 
 import { verifyBearer } from "@/bridge/auth.js";
 import { rest } from "@/bridge/discordRest.js";
@@ -30,6 +30,9 @@ import { nowMs } from "@/time.js";
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const EPHEMERAL_FLAG = 64;
+// Discord: "Cannot execute action on this channel type" — raised when creating a thread
+// on a channel that's already a thread (threads can't nest).
+const CANNOT_EXECUTE_ON_CHANNEL_TYPE = 50024;
 
 export interface ActionResult {
   status: number;
@@ -57,8 +60,17 @@ export async function handleAction(op: string, fields: Fields): Promise<ActionRe
       const body = messageId
         ? { name: fields.name }
         : { name: fields.name, type: 11 };
-      const thread = (await rest.post(route, { body })) as { id: string };
-      return { status: 200, body: { thread_id: thread.id } };
+      try {
+        const thread = (await rest.post(route, { body })) as { id: string };
+        return { status: 200, body: { thread_id: thread.id } };
+      } catch (err) {
+        // The channel is already a thread (threads can't nest) — run in it as-is.
+        // Defensive: PostHog also forwards channel_is_thread to skip this call entirely.
+        if (err instanceof DiscordAPIError && err.code === CANNOT_EXECUTE_ON_CHANNEL_TYPE) {
+          return { status: 200, body: { thread_id: channelId } };
+        }
+        throw err;
+      }
     }
 
     case "post_message": {

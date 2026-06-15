@@ -115,6 +115,8 @@ function message(over: Record<string, unknown> = {}) {
     channelId: "t1",
     content: "a reply",
     author: { id: "u1", username: "alice", globalName: "Alice", bot: false },
+    reference: null,
+    fetchReference: vi.fn(),
     channel: {
       id: "t1",
       isThread: () => true,
@@ -125,7 +127,7 @@ function message(over: Record<string, unknown> = {}) {
 }
 
 describe("MessageCreate → reply forwarding", () => {
-  it("forwards a reply in a watched forum thread", async () => {
+  it("forwards a plain message with a null replied_to (no thread history)", async () => {
     await messageHandler()(message());
     expect(forwardMessage).toHaveBeenCalledWith({
       kind: "message",
@@ -135,7 +137,27 @@ describe("MessageCreate → reply forwarding", () => {
       message_id: "m1",
       content: "a reply",
       author: { id: "u1", username: "alice", global_name: "Alice", bot: false },
+      replied_to: null,
     });
+  });
+
+  it("resolves the replied-to message when the reply references one", async () => {
+    const m = message({
+      reference: { messageId: "m0" },
+      fetchReference: vi.fn(async () => ({
+        id: "m0",
+        content: "earlier question",
+        createdTimestamp: 1_000,
+        author: { id: "u2", username: "bob", globalName: "Bob", bot: false },
+        reference: null,
+      })),
+    });
+    await messageHandler()(m);
+    expect(forwardMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        replied_to: expect.objectContaining({ id: "m0", content: "earlier question" }),
+      })
+    );
   });
 
   it("skips bot authors (no feedback loop on the agent's own replies)", async () => {

@@ -6,6 +6,7 @@ import {
   type ThreadChannel,
 } from "discord.js";
 
+import { resolveRepliedTo } from "@/bridge/context.js";
 import { forwardForumPost, forwardMessage } from "@/bridge/forward.js";
 import { isWatchedForum, isWatchedThread } from "@/db.js";
 
@@ -58,6 +59,12 @@ export function register(client: Client): void {
     // forum_post; only forward genuine replies.
     if (message.id === channel.id) return;
 
+    // PostHog already accumulates the running thread (every message is forwarded
+    // as it arrives, keyed by thread_id), so a reply only needs to point at the
+    // message it answers. Best-effort: null when it isn't a reply or the
+    // referenced message is gone.
+    const repliedTo = await resolveRepliedTo(message);
+
     await forwardMessage({
       kind: "message",
       guild_id: message.guildId,
@@ -71,6 +78,7 @@ export function register(client: Client): void {
         global_name: message.author.globalName ?? null,
         bot: message.author.bot,
       },
+      replied_to: repliedTo,
     });
   });
 

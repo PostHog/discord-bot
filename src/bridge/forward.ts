@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 
 import { bearerHeaders } from "@/bridge/auth.js";
+import type { ContextMessage } from "@/bridge/context.js";
 import { config } from "@/config.js";
 import { getGuildConfig } from "@/configCache.js";
 
@@ -31,6 +32,14 @@ export interface ForwardPayload {
   interaction_id: string;
   interaction_token: string;
   application_id: string;
+  /** True when the interaction's channel is itself a thread (threads can't nest). */
+  channel_is_thread: boolean;
+  /**
+   * Recent thread history (oldest-first) so the agent can resolve references
+   * like "this" in a `/ph code` prompt run inside a thread. Omitted outside a
+   * thread or when history can't be paged.
+   */
+  context?: ContextMessage[];
 }
 
 /** PostHog's synchronous reply to a forward. */
@@ -87,6 +96,7 @@ function baseFields(interaction: {
   guildId: string | null;
   guild?: { name: string } | null;
   channelId: string | null;
+  channel?: { isThread(): boolean } | null;
   user: { id: string; username: string; globalName: string | null };
   id: string;
   token: string;
@@ -96,6 +106,8 @@ function baseFields(interaction: {
     guild_id: interaction.guildId,
     guild_name: interaction.guild?.name ?? null,
     channel_id: interaction.channelId,
+    // Lets PostHog run a task in the current thread instead of trying to nest one.
+    channel_is_thread: interaction.channel?.isThread() ?? false,
     user: {
       id: interaction.user.id,
       username: interaction.user.username,
@@ -222,6 +234,8 @@ export interface MessagePayload {
   message_id: string;
   content: string;
   author: AuthorRef;
+  /** The message this one replies to, when it's a Discord reply; else null. */
+  replied_to?: ContextMessage | null;
 }
 
 /**
