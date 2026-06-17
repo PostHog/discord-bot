@@ -1,5 +1,5 @@
 [Unit]
-Description=Discord -> PostHog analytics bot
+Description=Discord analytics bot
 After=network-online.target
 Wants=network-online.target
 
@@ -10,7 +10,7 @@ Group=discordbot
 WorkingDirectory=/opt/discord-bot
 Environment=NODE_ENV=production
 Environment=DATABASE_PATH=/opt/discord-bot/data/bot.sqlite
-ExecStart=/usr/bin/node dist/index.js
+ExecStart=node dist/index.js
 Restart=always
 RestartSec=5
 NoNewPrivileges=true
