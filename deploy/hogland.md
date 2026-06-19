@@ -3,9 +3,6 @@
 Runs as a systemd service under a dedicated `discordbot` user, from
 `/opt/discord-bot`, on any Linux host (these notes assume a [hogland](https://github.com/PostHog/hogland) microVM, but nothing here is hogland-specific).
 
-
----
-
 ## Create the Discord application
 
 In the [Discord Developer Portal](https://discord.com/developers/applications):
@@ -24,23 +21,62 @@ Keep the token and application ID handy for step 4.
 
 ## Provision the host
 
-Create the service account the bot runs as:
+### Create the service account the bot runs as:
 
 ```bash
-sudo apt update && sudo apt install nano wget
+sudo apt update && sudo apt install -y nano wget build-essential ca-certificates curl
 sudo useradd --system --shell /usr/sbin/nologin --no-create-home discordbot
 ```
 
-Install Flox
+### Install Docker
+
+```bash
+# Add Docker's official GPG key:
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to apt sources:
+sudo tee /etc/apt/sources.list.d/docker.sources > /dev/null <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+sudo apt update
+
+# Install and verify:
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+```
+
+### Install Flox
 
 ```bash
 # Intel/AMD
 wget https://downloads.flox.dev/by-env/stable/deb/flox-1.12.2.x86_64-linux.deb
 
-# ARM
+# or ARM
 wget https://downloads.flox.dev/by-env/stable/deb/flox-1.12.2.aarch64-linux.deb
 
 sudo apt install ./flox-1.12.2.x86_64-linux.deb
+```
+
+### Install the 1Password CLI
+
+```bash
+curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+  sudo gpg --dearmor --output /usr/share/keyrings/1password-archive-keyring.gpg && \
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/1password-archive-keyring.gpg] https://downloads.1password.com/linux/debian/$(dpkg --print-architecture) stable main" | \
+  sudo tee /etc/apt/sources.list.d/1password.list && \
+  sudo mkdir -p /etc/debsig/policies/AC2D62742012EA22/ && \
+  curl -sS https://downloads.1password.com/linux/debian/debsig/1password.pol | \
+  sudo tee /etc/debsig/policies/AC2D62742012EA22/1password.pol && \
+  sudo mkdir -p /usr/share/debsig/keyrings/AC2D62742012EA22 && \
+  curl -sS https://downloads.1password.com/linux/keys/1password.asc | \
+  sudo gpg --dearmor --output /usr/share/debsig/keyrings/AC2D62742012EA22/debsig.gpg && \
+  sudo apt update && sudo apt install 1password-cli
 ```
 
 ## Get the code onto the box and build
