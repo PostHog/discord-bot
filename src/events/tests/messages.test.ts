@@ -56,6 +56,10 @@ describe("MessageCreate", () => {
       is_reply: false,
       has_embed: false,
     });
+    // Text is handed to capture.ts as `content` (which gates it on the guild's
+    // opt-in), never baked into properties here.
+    expect(arg.content).toBe("hello world");
+    expect(arg.properties).not.toHaveProperty("message_content");
     expect(runMessageTriggers).toHaveBeenCalledWith(msg);
   });
 

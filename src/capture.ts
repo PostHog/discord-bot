@@ -21,7 +21,21 @@ export interface CaptureArgs {
   properties?: Record<string, unknown>;
   /** The acting user, used to set person properties and apply the bot filter. */
   actor?: PersonLike;
+  /**
+   * Raw message text. Handlers may always pass it; it is only ever sent — as
+   * `message_content` — for guilds that opted in via `/ph analytics options`.
+   * Keeping the gate here rather than in the handlers means the "metadata only"
+   * default is enforced in exactly one place.
+   */
+  content?: string;
 }
+
+/**
+ * Cap on `message_content`. Discord's own limit is 2000 characters for
+ * non-Nitro users, so this only bites on long Nitro messages — but it keeps a
+ * single event from ballooning.
+ */
+export const MAX_CONTENT_LENGTH = 2000;
 
 function toPersonLike(user: Pick<User, "id" | "username" | "globalName" | "bot">): PersonLike {
   return {
@@ -69,6 +83,13 @@ function sendToGuild(
     ...args.properties,
     ...(args.actor ? personSet(args.actor) : {}),
   };
+
+  // Opt-in only: message text is dropped unless the guild turned it on.
+  if (args.content !== undefined && cfg.captureMessageContent) {
+    properties.message_content = args.content.slice(0, MAX_CONTENT_LENGTH);
+    properties.message_content_truncated =
+      args.content.length > MAX_CONTENT_LENGTH;
+  }
 
   client.capture({
     distinctId: args.distinctId,

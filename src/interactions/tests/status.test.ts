@@ -36,6 +36,7 @@ describe("handleStatusCommand", () => {
       enabledEvents: ["message_sent"],
       ignoreBots: true,
       messageSampleRate: 1,
+      captureMessageContent: false,
     });
     countMock.mockReturnValue(3);
     const i = interaction();

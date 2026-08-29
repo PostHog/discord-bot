@@ -51,6 +51,11 @@ export async function handleStatusCommand(
         inline: true,
       },
       {
+        name: "Message content",
+        value: cfg.captureMessageContent ? "⚠️ sent" : "not sent",
+        inline: true,
+      },
+      {
         name: `Enabled events (${cfg.enabledEvents.length})`,
         value: eventLines,
         inline: false,

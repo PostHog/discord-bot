@@ -18,6 +18,12 @@ export interface GuildConfig {
   enabledEvents: string[];
   ignoreBots: boolean;
   messageSampleRate: number;
+  /**
+   * Opt-in: attach the message text to message events as `message_content`.
+   * Off by default — the bot sends metadata only unless an admin explicitly
+   * turns this on with `/ph analytics options`.
+   */
+  captureMessageContent: boolean;
 }
 
 export const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
@@ -76,6 +82,7 @@ interface GuildConfigRow {
   enabled_events: string;
   ignore_bots: number;
   message_sample_rate: number;
+  capture_message_content: number;
 }
 
 // Ensure the directory for the SQLite file exists before opening it.
@@ -92,6 +99,7 @@ db.exec(`
     enabled_events      TEXT    NOT NULL DEFAULT '[]',
     ignore_bots         INTEGER NOT NULL DEFAULT 1,
     message_sample_rate REAL    NOT NULL DEFAULT 1.0,
+    capture_message_content INTEGER NOT NULL DEFAULT 0,
     created_at          INTEGER NOT NULL,
     updated_at          INTEGER NOT NULL
   );
@@ -122,6 +130,17 @@ db.exec(`
   );
 `);
 
+// Databases created before message-content capture existed lack the column;
+// add it defaulting to off so upgrading a deployment never starts sending text.
+const guildConfigColumns = db
+  .prepare("PRAGMA table_info(guild_config)")
+  .all() as { name: string }[];
+if (!guildConfigColumns.some((c) => c.name === "capture_message_content")) {
+  db.exec(
+    "ALTER TABLE guild_config ADD COLUMN capture_message_content INTEGER NOT NULL DEFAULT 0"
+  );
+}
+
 function rowToConfig(row: GuildConfigRow): GuildConfig {
   let enabledEvents: string[] = [];
   try {
@@ -140,6 +159,7 @@ function rowToConfig(row: GuildConfigRow): GuildConfig {
     enabledEvents,
     ignoreBots: row.ignore_bots !== 0,
     messageSampleRate: row.message_sample_rate,
+    captureMessageContent: row.capture_message_content !== 0,
   };
 }
 
@@ -200,9 +220,9 @@ export function setEnabledEvents(
   invalidateConfigCache(guildId);
 }
 
-const setOptionsStmt = db.prepare<[number, number, number, string]>(`
+const setOptionsStmt = db.prepare<[number, number, number, number, string]>(`
   UPDATE guild_config
-  SET ignore_bots = ?, message_sample_rate = ?, updated_at = ?
+  SET ignore_bots = ?, message_sample_rate = ?, capture_message_content = ?, updated_at = ?
   WHERE guild_id = ?
 `);
 
@@ -210,12 +230,14 @@ export function setOptions(
   guildId: string,
   ignoreBots: boolean,
   messageSampleRate: number,
+  captureMessageContent: boolean,
   now: number
 ): void {
   ensureRow(guildId, now);
   setOptionsStmt.run(
     ignoreBots ? 1 : 0,
     messageSampleRate,
+    captureMessageContent ? 1 : 0,
     now,
     guildId
   );

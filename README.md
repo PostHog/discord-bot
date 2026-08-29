@@ -3,7 +3,7 @@
 A public, multi-tenant Discord bot that streams server-event analytics to **PostHog** and bridges Discord to **PostHog Code** via the `/ph` command. Anyone can add it to their server and configure it entirely in-Discord with slash commands.
 
 > [!NOTE]
-> Each server routes to its own PostHog project. Analytics sends only metadata, never message text — the sole exception is content from forum channels an admin explicitly opts into via `/ph forums watch` (for the PostHog Code bridge).
+> Each server routes to its own PostHog project. Analytics sends only metadata by default; message text is sent only if an admin explicitly opts in via `/ph analytics options`. The other place content leaves Discord is forum channels an admin opts into via `/ph forums watch` (for the PostHog Code bridge).
 
 ## How it works
 
@@ -16,6 +16,26 @@ Every event is attached to a `discord_server` group keyed on the guild id, so yo
 ## Supported events
 
 `message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata, see `src/events-catalog.ts` and the handlers in `src/events/`.
+
+### Message content
+
+By default message events carry metadata only (`message_length`, `attachment_count`, `mention_count`, …) — the text never leaves Discord. An admin can opt the whole server in:
+
+```
+/ph analytics options capture_message_content:true
+```
+
+`message_sent` and `message_edited` then also carry `message_content` (the text; for edits, the post-edit version) and `message_content_truncated`. Text is capped at 2000 characters — Discord's own non-Nitro limit — so only long Nitro messages are cut.
+
+Worth thinking about before you turn it on:
+
+- **Members are not notified.** Only server admins see the setting. Tell your community, and check this is compatible with whatever you've told them about data handling.
+- **Text becomes an event property in PostHog**, subject to that project's retention and visible to anyone who can query the project.
+- It requires the privileged **Message Content** intent (the bot already requests it).
+- It's off by default and stays off when an existing deployment upgrades — the column is added defaulting to off.
+- Turn it back off with `capture_message_content:false`; `/ph analytics status` always shows the current state.
+
+The gate lives at the capture choke point in `src/capture.ts`, not in the event handlers, so "metadata only" is enforced in exactly one place.
 
 ### `server_snapshot`
 
@@ -38,7 +58,7 @@ any member (PostHog authorizes sensitive actions).
 | `/ph code <prompt> [repo]` | Ask PostHog Code to work on a task | anyone |
 | `/ph connect` | Connect this server to a PostHog project (returns a signed confirmation link; also provisions the analytics project) | Manage Server |
 | `/ph analytics events` | Choose which events are sent (multi-select) | Manage Server |
-| `/ph analytics options` | Toggle bot filtering and message sampling | Manage Server |
+| `/ph analytics options` | Toggle bot filtering, message sampling, and message-content capture | Manage Server |
 | `/ph analytics status` | Show the current config (the key is masked) | Manage Server |
 | `/ph analytics test` | Send a test event to verify the connection | Manage Server |
 | `/ph analytics disable` | Stop sending and clear this server's config | Manage Server |
@@ -152,8 +172,8 @@ reachable by PostHog.
 
 ## Privacy
 
-- **Analytics** never sends message text — only metadata.
-- The one exception is the **PostHog Code bridge**: in a forum an admin explicitly opts in with `/ph forums watch`, post and reply **content** is forwarded (that's the point — the agent needs it). Nothing is forwarded from unwatched channels.
+- **Analytics** sends metadata only unless an admin opts the server in with `/ph analytics options capture_message_content:true` (off by default, including across upgrades). See [Message content](#message-content).
+- Content also leaves Discord via the **PostHog Code bridge**: in a forum an admin explicitly opts in with `/ph forums watch`, post and reply **content** is forwarded (that's the point — the agent needs it). Nothing is forwarded from unwatched channels.
 - Configuration (including the API key) is only ever shown to admins via **ephemeral** replies, and the key is masked in `/ph analytics status`.
 
 ## Deployment
