@@ -183,17 +183,22 @@ hand). Both scopes are required `applications.commands` is what makes the
 slash commands show up:
 
 ```
-https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=292057861184
+https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=326417599552
 ```
 
-`permissions=292057861184` covers what the bridge actions API needs to act in a
+`permissions=326417599552` covers what the bridge actions API needs to act in a
 channel: **View Channels**, **Read Message History**, **Send Messages**, **Send
 Messages in Threads**, **Create Public Threads**, **Add Reactions**, and **Embed
 Links**. (Add **Manage Messages** only if PostHog will delete *other* users'
 messages; the bot needs nothing extra to delete its own. Add **Attach Files** to
-upload files.) Analytics signals (members, voice, bans) arrive via gateway
-intents, not channel permissions. Easiest is to tick these boxes in the URL
-Generator and let it compute the integer.
+upload files.) Easiest is to tick these boxes in the URL Generator and let it
+compute the integer.
+
+Analytics needs far less: member joins/leaves/bans and voice states arrive
+guild-wide over the gateway intents, no channel permission involved. Message,
+reaction, and thread events are different — the gateway only delivers those for
+channels the bot can **View Channel** on, so a private channel the bot isn't in
+is simply absent from your analytics rather than partially captured.
 
 Forum forwarding (`/ph forums watch`) relies on **View Channel** + **Send
 Messages in Threads** on the watched forum both are in the set above, but make
