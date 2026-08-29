@@ -98,8 +98,10 @@ export async function rosterGuild(guild: Guild): Promise<void> {
   }
   await flushForGuild(guild.id);
 
+  // "captured" is pre-gate: the bot filter and sampling run inside
+  // captureForGuild, so fewer events than this may actually reach PostHog.
   console.log(
-    `[roster] ${guild.id}: ${members.size} members fetched, ${emitted} emitted.`
+    `[roster] ${guild.id}: ${members.size} members fetched, ${emitted} captured (before bot filter).`
   );
 }
 
