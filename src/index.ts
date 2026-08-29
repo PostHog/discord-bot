@@ -29,8 +29,9 @@ const client = new Client({
     // Developer Portal. Required for the bot's core member analytics.
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessages,
-    // Privileged — used only to derive message metadata (length, mentions),
-    // never to read/store text. Optional: without it message_sent still fires.
+    // Privileged — derives message metadata (length, mentions), and carries the
+    // text itself for guilds that opted in via `/ph analytics options`.
+    // Optional: without it message_sent still fires.
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMessageReactions,
     GatewayIntentBits.GuildVoiceStates,
