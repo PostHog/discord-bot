@@ -11,11 +11,33 @@ A public, multi-tenant Discord bot that streams server-event analytics to **Post
 Discord event → handler → captureForGuild() → configured? → event enabled? → bot filter? → sampling? → PostHog project
 ```
 
-Every event is attached to a `discord_server` group keyed on the guild id, so you can break analytics down per server. Nothing is sent until an admin connects the server with `/ph connect` and enables event types. Per-guild config (API key, host, enabled events, options) is stored in SQLite, where a client pool keeps one `posthog-node` client per destination.
+Every event is attached to a `discord_server` group keyed on the guild id, so you can break analytics down per server. Channel-scoped events also carry `root_channel_id` / `root_channel_name` — the parent channel for messages in threads, the channel itself otherwise — so a per-channel breakdown folds thread activity into the channel it happened in instead of splitting each thread out. Nothing is sent until an admin connects the server with `/ph connect` and enables event types. Per-guild config (API key, host, enabled events, options) is stored in SQLite, where a client pool keeps one `posthog-node` client per destination.
 
 ## Supported events
 
-`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata, see `src/events-catalog.ts` and the handlers in `src/events/`.
+`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `member_roster`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata, see `src/events-catalog.ts` and the handlers in `src/events/`.
+
+### `member_roster`
+
+Gateway events only ever tell you about members who *do* something, so PostHog never
+learns the silent majority exists — which makes "how many members have never posted?"
+unanswerable, because the denominator is missing. `member_roster` fills that in: when
+enabled it periodically emits one event per member carrying `joined_at`, `roles`,
+`role_count`, `is_bot`, and `nickname`, and mirrors `discord_joined_at` /
+`discord_roles` / `discord_role_count` onto the PostHog person.
+
+That unlocks never-posted / posted-once / posted-2+ breakdowns, and tenure
+("joined 30+ days ago") for members who were already in the server before the bot
+arrived — `member_joined` can only see joins from installation onwards.
+
+Roles are re-set on every run, so a member who picks up a role later is reflected
+within one interval (`ROSTER_INTERVAL_HOURS`, default 24). Note PostHog freezes person
+properties onto events at ingestion time, so older events won't retroactively gain a
+newly-added role — filter with a cohort when you need current role state.
+
+**It costs one event per member per run**: a 1,000-member server emits 1,000 events a
+day at the default interval. Raise `ROSTER_INTERVAL_HOURS` to trade freshness for
+volume.
 
 ### Message content
 

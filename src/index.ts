@@ -10,6 +10,7 @@ import { config } from "@/config.js";
 import { closeDb } from "@/db.js";
 import { routeInteraction } from "@/interactions/router.js";
 import { shutdownAll } from "@/posthogPool.js";
+import * as roster from "@/roster.js";
 import * as snapshots from "@/snapshots.js";
 
 import * as forumPosts from "@/events/forumPosts.js";
@@ -59,6 +60,7 @@ voice.register(client);
 threads.register(client);
 forumPosts.register(client);
 snapshots.register(client);
+roster.register(client);
 
 // Slash-command / modal / select-menu interactions.
 client.on(Events.InteractionCreate, (interaction) => {
@@ -84,6 +86,7 @@ async function shutdown(signal: string): Promise<void> {
   console.log(`\nReceived ${signal}, shutting down…`);
   try {
     snapshots.stopSnapshots();
+    roster.stopRoster();
     actionsServer.close();
     client.removeAllListeners();
     await client.destroy();

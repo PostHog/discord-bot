@@ -22,6 +22,11 @@ export interface CaptureArgs {
   /** The acting user, used to set person properties and apply the bot filter. */
   actor?: PersonLike;
   /**
+   * Extra person properties to `$set` alongside the actor's. Used by the member
+   * roster to attach join date and roles to the PostHog person.
+   */
+  personProperties?: Record<string, unknown>;
+  /**
    * Raw message text. Handlers may always pass it; it is only ever sent — as
    * `message_content` — for guilds that opted in via `/ph analytics options`.
    * Keeping the gate here rather than in the handlers means the "metadata only"
@@ -49,11 +54,9 @@ function toPersonLike(user: Pick<User, "id" | "username" | "globalName" | "bot">
 /** Build `$set` person properties from a Discord user. */
 function personSet(actor: PersonLike): Record<string, unknown> {
   return {
-    $set: {
-      discord_username: actor.username,
-      discord_global_name: actor.globalName ?? null,
-      discord_is_bot: actor.bot,
-    },
+    discord_username: actor.username,
+    discord_global_name: actor.globalName ?? null,
+    discord_is_bot: actor.bot,
   };
 }
 
@@ -79,10 +82,15 @@ function sendToGuild(
 ): void {
   const client = getPostHogClient(cfg.posthogHost, cfg.posthogApiKey!);
 
-  const properties: Record<string, unknown> = {
-    ...args.properties,
+  const properties: Record<string, unknown> = { ...args.properties };
+
+  // Person properties: caller-supplied first, then the actor's, so the actor's
+  // identity fields always win over anything passed in.
+  const set = {
+    ...args.personProperties,
     ...(args.actor ? personSet(args.actor) : {}),
   };
+  if (Object.keys(set).length > 0) properties.$set = set;
 
   // Opt-in only: message text is dropped unless the guild turned it on.
   if (args.content !== undefined && cfg.captureMessageContent) {

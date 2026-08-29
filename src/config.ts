@@ -12,6 +12,8 @@ export interface BotConfig {
   databasePath: string;
   /** How often to emit the server_snapshot event, in hours (default 24). */
   snapshotIntervalHours: number;
+  /** How often to emit the member_roster event set, in hours (default 24). */
+  rosterIntervalHours: number;
   /**
    * Shared secret for the PostHog Code bridge, used as a bearer token in BOTH
    * directions: the bot sends it when forwarding interactions to PostHog, and
@@ -66,6 +68,7 @@ export const config: BotConfig = {
   discordClientId: required("DISCORD_APPLICATION_ID"),
   databasePath: process.env.DATABASE_PATH?.trim() || "./data/bot.sqlite",
   snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 24),
+  rosterIntervalHours: positiveNumber("ROSTER_INTERVAL_HOURS", 24),
   sharedSecret: required("POSTHOG_DISCORD_SHARED_SECRET"),
   actionsBind: requiredBind("BOT_ACTIONS_BIND"),
   bridgeBaseUrl: process.env.POSTHOG_BRIDGE_BASE_URL?.trim().replace(/\/+$/, "") || undefined,

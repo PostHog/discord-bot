@@ -66,6 +66,14 @@ export const EVENT_CATALOG: readonly CatalogEntry[] = [
     description: "A user was banned",
     category: "members",
   },
+  {
+    key: "member_roster",
+    label: "Member roster (periodic)",
+    description:
+      "Periodic record of every member with join date and roles — one event per member",
+    category: "members",
+    requiresIntent: "GuildMembers",
+  },
   // Reactions
   {
     key: "reaction_added",

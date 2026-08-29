@@ -19,6 +19,9 @@ describe("channelProps", () => {
       channel_id: "c1",
       channel_name: "general",
       channel_type: "text",
+      // A non-thread is its own root, so per-channel breakdowns work uniformly.
+      root_channel_id: "c1",
+      root_channel_name: "general",
     });
   });
 
@@ -57,5 +60,34 @@ describe("guildProps", () => {
       guild_id: "g1",
       guild_name: "My Server",
     });
+  });
+});
+
+describe("channelProps for threads", () => {
+  function thread(parent: { id: string; name: string | null } | null) {
+    return {
+      id: "t1",
+      name: "help with X",
+      type: ChannelType.PublicThread,
+      isThread: () => true,
+      parent,
+    } as never;
+  }
+
+  it("rolls a thread up into its parent channel", () => {
+    expect(channelProps(thread({ id: "c1", name: "posthog-chat" }))).toMatchObject({
+      channel_id: "t1",
+      channel_name: "help with X",
+      parent_channel_id: "c1",
+      parent_channel_name: "posthog-chat",
+      root_channel_id: "c1",
+      root_channel_name: "posthog-chat",
+    });
+  });
+
+  it("falls back to the thread itself when the parent isn't cached", () => {
+    const props = channelProps(thread(null));
+    expect(props).not.toHaveProperty("parent_channel_id");
+    expect(props).toMatchObject({ root_channel_id: "t1", root_channel_name: "help with X" });
   });
 });
