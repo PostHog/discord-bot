@@ -88,7 +88,7 @@ Pick **one** of these to land a built copy in `/opt/discord-bot`.
 ```bash
 git clone git@github.com:PostHog/discord-bot.git ~/discord-bot
 cd ~/discord-bot && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 ```
 
 **Option B: sync from your laptop** (e.g. a hogland box reached over the
@@ -105,10 +105,13 @@ rsync -avz --filter=':- .gitignore' --exclude='.git' \
 
 # then on the box
 cd ~/discord-bot && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 ```
 
-`--exclude data` preserves the SQLite database across redeploys.
+`--exclude data` preserves the SQLite database across redeploys, and
+`--exclude .env` preserves the secrets file — without it `--delete` removes
+`/opt/discord-bot/.env` (the source tree has no `.env`, by design) and the
+service crash-loops on `Missing required environment variable`.
 
 ## 4. Configure the environment
 
@@ -224,7 +227,7 @@ Rebuild and sync, keeping the database, then restart:
 
 ```bash
 cd ~/discord-bot && git pull && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 sudo chown -R discordbot:discordbot /opt/discord-bot
 sudo systemctl restart discord-bot
 sudo journalctl -u discord-bot -f
