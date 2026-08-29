@@ -1,12 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { captureForGuild, getGuildConfig } = vi.hoisted(() => ({
+const { captureForGuild, flushForGuild, getGuildConfig } = vi.hoisted(() => ({
   captureForGuild: vi.fn(),
+  flushForGuild: vi.fn(async () => {}),
   getGuildConfig: vi.fn(),
 }));
 
 vi.mock("@/capture.js", () => ({
   captureForGuild,
+  flushForGuild,
   toPersonLike: (u: {
     id: string;
     username: string;
@@ -112,6 +114,15 @@ describe("rosterGuild", () => {
     getGuildConfig.mockReturnValue(enabled);
     await rosterGuild(guild([member({ joinedAt: null })]) as never);
     expect(captureForGuild.mock.calls[0][0].properties.joined_at).toBeNull();
+  });
+
+  it("flushes periodically so posthog-node's queue cap can't drop members", async () => {
+    getGuildConfig.mockReturnValue(enabled);
+    // 450 members -> flushes at 200 and 400, plus the final drain.
+    const many = Array.from({ length: 450 }, (_, i) => member({ id: `u${i}` }));
+    await rosterGuild(guild(many) as never);
+    expect(captureForGuild).toHaveBeenCalledTimes(450);
+    expect(flushForGuild).toHaveBeenCalledTimes(3);
   });
 
   it("never throws when the member fetch fails", async () => {

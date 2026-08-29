@@ -35,6 +35,10 @@ within one interval (`ROSTER_INTERVAL_HOURS`, default 24). Note PostHog freezes 
 properties onto events at ingestion time, so older events won't retroactively gain a
 newly-added role — filter with a cohort when you need current role state.
 
+The sweep flushes every 200 members: posthog-node queues at most 1000 events and
+drops the *oldest* on overflow, so an unflushed roster on a large server would
+silently truncate to its last 1000 members.
+
 **It costs one event per member per run**: a 1,000-member server emits 1,000 events a
 day at the default interval. Raise `ROSTER_INTERVAL_HOURS` to trade freshness for
 volume.

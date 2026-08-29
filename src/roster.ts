@@ -1,6 +1,6 @@
 import { type Client, Events, type Guild, type GuildMember } from "discord.js";
 
-import { captureForGuild, toPersonLike } from "@/capture.js";
+import { captureForGuild, flushForGuild, toPersonLike } from "@/capture.js";
 import { config } from "@/config.js";
 import { getGuildConfig } from "@/configCache.js";
 
@@ -25,6 +25,12 @@ const ROSTER_EVENT = "member_roster";
 
 /** Discord's implicit everyone-role shows on every member; it carries no signal. */
 const EVERYONE_ROLE = "@everyone";
+
+/**
+ * How many members to enqueue between flushes. Comfortably under posthog-node's
+ * 1000-event queue cap, which drops the oldest event on overflow.
+ */
+const FLUSH_EVERY = 200;
 
 function memberProperties(
   guild: Guild,
@@ -73,6 +79,7 @@ export async function rosterGuild(guild: Guild): Promise<void> {
     return;
   }
 
+  let emitted = 0;
   for (const member of members.values()) {
     const { properties, personProperties } = memberProperties(guild, member);
     captureForGuild({
@@ -83,7 +90,17 @@ export async function rosterGuild(guild: Guild): Promise<void> {
       properties,
       personProperties,
     });
+    emitted += 1;
+    // Drain before posthog-node's 1000-event queue fills: on overflow it drops
+    // the OLDEST queued event silently, which on a big server would quietly
+    // truncate the roster to its last 1000 members.
+    if (emitted % FLUSH_EVERY === 0) await flushForGuild(guild.id);
   }
+  await flushForGuild(guild.id);
+
+  console.log(
+    `[roster] ${guild.id}: ${members.size} members fetched, ${emitted} emitted.`
+  );
 }
 
 async function rosterAll(client: Client): Promise<void> {

@@ -149,5 +149,21 @@ export function captureCustomEvent(args: CaptureArgs): void {
   }
 }
 
+/**
+ * Flush a guild's pooled client. posthog-node keeps at most 1000 queued events
+ * and silently drops the OLDEST on overflow, so any caller that enqueues in bulk
+ * (the member roster) must drain periodically rather than trusting the
+ * background batcher to keep up. Never throws.
+ */
+export async function flushForGuild(guildId: string): Promise<void> {
+  try {
+    const cfg = getGuildConfig(guildId);
+    if (!cfg?.posthogApiKey) return;
+    await getPostHogClient(cfg.posthogHost, cfg.posthogApiKey).flush();
+  } catch (err) {
+    console.error(`[capture] flush failed for guild ${guildId}:`, err);
+  }
+}
+
 export { toPersonLike };
 export type { PersonLike };
