@@ -71,6 +71,10 @@ Discord's _Server Insights_ dashboard isn't exposed to bots, but the flow events
 
 Graph these in PostHog for "members / online / boosts over time". It's opt-in via `/ph analytics events` like any other event, fires once on startup for an immediate data point, and only does the per-guild API call when a server has it enabled.
 
+It runs hourly by default (`SNAPSHOT_INTERVAL_HOURS`), which is what makes `online_count` usable as a *shape*: bucket it by hour of day and weekday and you get the peak-activity heatmap Server Insights won't give you. Sampled daily instead, every reading lands on the same hour and that shape disappears. One event per server per run, so hourly is a rounding error next to `member_roster` — which emits one event per member per run and stays daily for that reason.
+
+`online_count` is Discord's own approximate presence count (`approximate_presence_count`), so treat it as a trend, not a headcount: it's an estimate, counts anyone not offline (online / idle / DND) including bots, and it's a reading from the moment of the sweep rather than a live figure.
+
 ## Slash commands
 
 Everything lives under one top-level **`/ph`** command (Discord caps a command at

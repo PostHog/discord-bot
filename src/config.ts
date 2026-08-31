@@ -10,7 +10,7 @@ export interface BotConfig {
   discordToken: string;
   discordClientId: string;
   databasePath: string;
-  /** How often to emit the server_snapshot event, in hours (default 24). */
+  /** How often to emit the server_snapshot event, in hours (default 1). */
   snapshotIntervalHours: number;
   /** How often to emit the member_roster event set, in hours (default 24). */
   rosterIntervalHours: number;
@@ -67,7 +67,11 @@ export const config: BotConfig = {
   discordToken: required("DISCORD_BOT_TOKEN"),
   discordClientId: required("DISCORD_APPLICATION_ID"),
   databasePath: process.env.DATABASE_PATH?.trim() || "./data/bot.sqlite",
-  snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 24),
+  // Hourly, because the presence count is only interesting as a shape over the
+  // day: sampled once every 24h it lands on the same hour every time, which
+  // describes one moment rather than when the server is actually busy. The cost is
+  // one REST call and one event per server per hour.
+  snapshotIntervalHours: positiveNumber("SNAPSHOT_INTERVAL_HOURS", 1),
   rosterIntervalHours: positiveNumber("ROSTER_INTERVAL_HOURS", 24),
   sharedSecret: required("POSTHOG_DISCORD_SHARED_SECRET"),
   actionsBind: requiredBind("BOT_ACTIONS_BIND"),
