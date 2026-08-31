@@ -88,7 +88,7 @@ Pick **one** of these to land a built copy in `/opt/discord-bot`.
 ```bash
 git clone git@github.com:PostHog/discord-bot.git ~/discord-bot
 cd ~/discord-bot && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 ```
 
 **Option B: sync from your laptop** (e.g. a hogland box reached over the
@@ -105,10 +105,13 @@ rsync -avz --filter=':- .gitignore' --exclude='.git' \
 
 # then on the box
 cd ~/discord-bot && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 ```
 
-`--exclude data` preserves the SQLite database across redeploys.
+`--exclude data` preserves the SQLite database across redeploys, and
+`--exclude .env` preserves the secrets file — without it `--delete` removes
+`/opt/discord-bot/.env` (the source tree has no `.env`, by design) and the
+service crash-loops on `Missing required environment variable`.
 
 ## 4. Configure the environment
 
@@ -183,17 +186,22 @@ hand). Both scopes are required `applications.commands` is what makes the
 slash commands show up:
 
 ```
-https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=292057861184
+https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=326417599552
 ```
 
-`permissions=292057861184` covers what the bridge actions API needs to act in a
+`permissions=326417599552` covers what the bridge actions API needs to act in a
 channel: **View Channels**, **Read Message History**, **Send Messages**, **Send
 Messages in Threads**, **Create Public Threads**, **Add Reactions**, and **Embed
 Links**. (Add **Manage Messages** only if PostHog will delete *other* users'
 messages; the bot needs nothing extra to delete its own. Add **Attach Files** to
-upload files.) Analytics signals (members, voice, bans) arrive via gateway
-intents, not channel permissions. Easiest is to tick these boxes in the URL
-Generator and let it compute the integer.
+upload files.) Easiest is to tick these boxes in the URL Generator and let it
+compute the integer.
+
+Analytics needs far less: member joins/leaves/bans and voice states arrive
+guild-wide over the gateway intents, no channel permission involved. Message,
+reaction, and thread events are different — the gateway only delivers those for
+channels the bot can **View Channel** on, so a private channel the bot isn't in
+is simply absent from your analytics rather than partially captured.
 
 Forum forwarding (`/ph forums watch`) relies on **View Channel** + **Send
 Messages in Threads** on the watched forum both are in the set above, but make
@@ -219,7 +227,7 @@ Rebuild and sync, keeping the database, then restart:
 
 ```bash
 cd ~/discord-bot && git pull && npm install && npm run build
-sudo rsync -a --delete --exclude data ~/discord-bot/ /opt/discord-bot/
+sudo rsync -a --delete --exclude data --exclude .env ~/discord-bot/ /opt/discord-bot/
 sudo chown -R discordbot:discordbot /opt/discord-bot
 sudo systemctl restart discord-bot
 sudo journalctl -u discord-bot -f

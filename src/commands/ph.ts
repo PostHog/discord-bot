@@ -61,7 +61,7 @@ export const phCommand = new SlashCommandBuilder()
       .addSubcommand((sub) =>
         sub
           .setName("options")
-          .setDescription("Toggle bot filtering and message sampling")
+          .setDescription("Toggle bot filtering, sampling and message content")
           .addBooleanOption((opt) =>
             opt
               .setName("ignore_bots")
@@ -73,6 +73,13 @@ export const phCommand = new SlashCommandBuilder()
               .setDescription("Fraction of messages to send, 0.0–1.0 (default: 1.0)")
               .setMinValue(0)
               .setMaxValue(1)
+          )
+          .addBooleanOption((opt) =>
+            opt
+              .setName("capture_message_content")
+              .setDescription(
+                "Send message text to PostHog, not just metadata (default: false)"
+              )
           )
       )
       .addSubcommand((sub) =>

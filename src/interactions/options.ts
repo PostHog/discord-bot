@@ -22,13 +22,33 @@ export async function handleOptionsCommand(
     existing?.messageSampleRate ??
     1.0;
 
-  setOptions(interaction.guildId, ignoreBots, sampleRate, nowMs());
+  const captureMessageContent =
+    interaction.options.getBoolean("capture_message_content") ??
+    existing?.captureMessageContent ??
+    false;
+
+  setOptions(
+    interaction.guildId,
+    ignoreBots,
+    sampleRate,
+    captureMessageContent,
+    nowMs()
+  );
+
+  const contentWarning = captureMessageContent
+    ? "\n\n⚠️ Message text from this server is now sent to PostHog as " +
+      "`message_content`. Members are not notified — make sure that's what " +
+      "your server expects. Turn it back off with " +
+      "`/ph analytics options capture_message_content:false`."
+    : "";
 
   await interaction.reply({
     content:
       "✅ Options updated:\n" +
       `• Ignore bot users: **${ignoreBots ? "yes" : "no"}**\n` +
-      `• Message sample rate: **${sampleRate}** (1.0 = all messages)`,
+      `• Message sample rate: **${sampleRate}** (1.0 = all messages)\n` +
+      `• Capture message content: **${captureMessageContent ? "yes" : "no"}**` +
+      contentWarning,
     flags: MessageFlags.Ephemeral,
   });
 }

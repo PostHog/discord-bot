@@ -51,6 +51,7 @@ describe("guild_config repo", () => {
       enabledEvents: [],
       ignoreBots: true,
       messageSampleRate: 1,
+      captureMessageContent: false,
     });
   });
 
@@ -65,10 +66,11 @@ describe("guild_config repo", () => {
 
   it("updates options", () => {
     const g = guild();
-    setOptions(g, false, 0.25, NOW);
+    setOptions(g, false, 0.25, true, NOW);
     expect(readGuildConfig(g)).toMatchObject({
       ignoreBots: false,
       messageSampleRate: 0.25,
+      captureMessageContent: true,
     });
   });
 

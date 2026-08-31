@@ -14,7 +14,9 @@ const { captureSpy, getPostHogClient, getGuildConfig } = vi.hoisted(() => {
 vi.mock("@/posthogPool.js", () => ({ getPostHogClient }));
 vi.mock("@/configCache.js", () => ({ getGuildConfig }));
 
-const { captureForGuild, captureCustomEvent } = await import("@/capture.js");
+const { captureForGuild, captureCustomEvent, MAX_CONTENT_LENGTH } = await import(
+  "@/capture.js"
+);
 
 function config(partial: Partial<GuildConfig> = {}): GuildConfig {
   return {
@@ -24,6 +26,7 @@ function config(partial: Partial<GuildConfig> = {}): GuildConfig {
     enabledEvents: ["message_sent"],
     ignoreBots: true,
     messageSampleRate: 1,
+    captureMessageContent: false,
     ...partial,
   };
 }
@@ -109,6 +112,45 @@ describe("captureForGuild", () => {
         },
       },
     });
+  });
+
+  it("drops message content unless the guild opted in", () => {
+    captureForGuild({
+      guildId: "g1",
+      event: "message_sent",
+      distinctId: "u1",
+      content: "hello world",
+    });
+    expect(captureSpy.mock.calls[0][0].properties).not.toHaveProperty(
+      "message_content"
+    );
+  });
+
+  it("attaches message content when the guild opted in", () => {
+    getGuildConfig.mockReturnValue(config({ captureMessageContent: true }));
+    captureForGuild({
+      guildId: "g1",
+      event: "message_sent",
+      distinctId: "u1",
+      content: "hello world",
+    });
+    expect(captureSpy.mock.calls[0][0].properties).toMatchObject({
+      message_content: "hello world",
+      message_content_truncated: false,
+    });
+  });
+
+  it("truncates long message content", () => {
+    getGuildConfig.mockReturnValue(config({ captureMessageContent: true }));
+    captureForGuild({
+      guildId: "g1",
+      event: "message_sent",
+      distinctId: "u1",
+      content: "x".repeat(MAX_CONTENT_LENGTH + 50),
+    });
+    const props = captureSpy.mock.calls[0][0].properties;
+    expect(props.message_content).toHaveLength(MAX_CONTENT_LENGTH);
+    expect(props.message_content_truncated).toBe(true);
   });
 
   it("never throws even if the client errors", () => {

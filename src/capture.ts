@@ -21,7 +21,26 @@ export interface CaptureArgs {
   properties?: Record<string, unknown>;
   /** The acting user, used to set person properties and apply the bot filter. */
   actor?: PersonLike;
+  /**
+   * Extra person properties to `$set` alongside the actor's. Used by the member
+   * roster to attach join date and roles to the PostHog person.
+   */
+  personProperties?: Record<string, unknown>;
+  /**
+   * Raw message text. Handlers may always pass it; it is only ever sent — as
+   * `message_content` — for guilds that opted in via `/ph analytics options`.
+   * Keeping the gate here rather than in the handlers means the "metadata only"
+   * default is enforced in exactly one place.
+   */
+  content?: string;
 }
+
+/**
+ * Cap on `message_content`. Discord's own limit is 2000 characters for
+ * non-Nitro users, so this only bites on long Nitro messages — but it keeps a
+ * single event from ballooning.
+ */
+export const MAX_CONTENT_LENGTH = 2000;
 
 function toPersonLike(user: Pick<User, "id" | "username" | "globalName" | "bot">): PersonLike {
   return {
@@ -35,11 +54,9 @@ function toPersonLike(user: Pick<User, "id" | "username" | "globalName" | "bot">
 /** Build `$set` person properties from a Discord user. */
 function personSet(actor: PersonLike): Record<string, unknown> {
   return {
-    $set: {
-      discord_username: actor.username,
-      discord_global_name: actor.globalName ?? null,
-      discord_is_bot: actor.bot,
-    },
+    discord_username: actor.username,
+    discord_global_name: actor.globalName ?? null,
+    discord_is_bot: actor.bot,
   };
 }
 
@@ -65,10 +82,22 @@ function sendToGuild(
 ): void {
   const client = getPostHogClient(cfg.posthogHost, cfg.posthogApiKey!);
 
-  const properties: Record<string, unknown> = {
-    ...args.properties,
+  const properties: Record<string, unknown> = { ...args.properties };
+
+  // Person properties: caller-supplied first, then the actor's, so the actor's
+  // identity fields always win over anything passed in.
+  const set = {
+    ...args.personProperties,
     ...(args.actor ? personSet(args.actor) : {}),
   };
+  if (Object.keys(set).length > 0) properties.$set = set;
+
+  // Opt-in only: message text is dropped unless the guild turned it on.
+  if (args.content !== undefined && cfg.captureMessageContent) {
+    properties.message_content = args.content.slice(0, MAX_CONTENT_LENGTH);
+    properties.message_content_truncated =
+      args.content.length > MAX_CONTENT_LENGTH;
+  }
 
   client.capture({
     distinctId: args.distinctId,
@@ -117,6 +146,22 @@ export function captureCustomEvent(args: CaptureArgs): void {
     sendToGuild(cfg, args);
   } catch (err) {
     console.error(`[capture] custom event ${args.event} failed:`, err);
+  }
+}
+
+/**
+ * Flush a guild's pooled client. posthog-node keeps at most 1000 queued events
+ * and silently drops the OLDEST on overflow, so any caller that enqueues in bulk
+ * (the member roster) must drain periodically rather than trusting the
+ * background batcher to keep up. Never throws.
+ */
+export async function flushForGuild(guildId: string): Promise<void> {
+  try {
+    const cfg = getGuildConfig(guildId);
+    if (!cfg?.posthogApiKey) return;
+    await getPostHogClient(cfg.posthogHost, cfg.posthogApiKey).flush();
+  } catch (err) {
+    console.error(`[capture] flush failed for guild ${guildId}:`, err);
   }
 }
 

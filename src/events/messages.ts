@@ -5,7 +5,9 @@ import { channelProps, guildProps } from "@/props.js";
 import { runMessageTriggers } from "@/triggers.js";
 
 /**
- * Message events. We send metadata only — never the message text. Note that
+ * Message events. Metadata only by default; the text is passed to
+ * {@link captureForGuild} as `content`, which drops it unless the guild opted
+ * in with `/ph analytics options capture_message_content:true`. Note that
  * `message_length` / `attachment_count` / `mention_count` are derived from
  * content the bot can only see when the privileged **Message Content** intent is
  * granted; without it they read as 0 but `message_sent` still fires (so message
@@ -20,6 +22,7 @@ export function register(client: Client): void {
       event: "message_sent",
       distinctId: message.author.id,
       actor: toPersonLike(message.author),
+      content: message.content,
       properties: {
         ...guildProps(message.guild),
         ...channelProps(message.channel),
@@ -49,6 +52,8 @@ export function register(client: Client): void {
       event: "message_edited",
       distinctId: author.id,
       actor: toPersonLike(author),
+      // The post-edit text, so an opted-in guild sees the current wording.
+      content: newMessage.content,
       properties: {
         ...guildProps(newMessage.guild),
         ...channelProps(newMessage.channel),
