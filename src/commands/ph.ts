@@ -6,6 +6,7 @@ import { ChannelType, SlashCommandBuilder } from "discord.js";
  * (never both) and forbids nesting subcommand groups:
  *
  *   /ph code <prompt> [repo]                 → PostHog Code (forwarded, public)
+ *   /ph idea                                 → pitch a roadmap idea (local, public)
  *   /ph connect [project_id]                 → bind server → project (forwarded, Manage Server)
  *   /ph analytics events|options|status|test|disable → analytics config (local, Manage Server)
  *   /ph triggers  add|list|remove|toggle     → custom triggers (local, Manage Server)
@@ -36,6 +37,10 @@ export const phCommand = new SlashCommandBuilder()
           .setDescription("Repository (owner/repo)")
           .setAutocomplete(true)
       )
+  )
+  // --- idea -------------------------------------------------------------
+  .addSubcommand((sub) =>
+    sub.setName("idea").setDescription("Pitch an idea for the PostHog roadmap")
   )
   // --- connect ----------------------------------------------------------
   .addSubcommand((sub) =>
