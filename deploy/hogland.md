@@ -54,13 +54,10 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 ### Install Flox
 
 ```bash
-# Intel/AMD
-wget https://downloads.flox.dev/by-env/stable/deb/flox-1.12.2.x86_64-linux.deb
+# uname -m prints x86_64 or aarch64, matching the Flox .deb names
+wget https://downloads.flox.dev/by-env/stable/deb/flox-1.19.1.$(uname -m)-linux.deb
 
-# or ARM
-wget https://downloads.flox.dev/by-env/stable/deb/flox-1.12.2.aarch64-linux.deb
-
-sudo apt install ./flox-1.12.2.x86_64-linux.deb
+sudo apt install ./flox-1.19.1.$(uname -m)-linux.deb
 ```
 
 ### Install the 1Password CLI
