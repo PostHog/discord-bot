@@ -86,6 +86,7 @@ any member (PostHog authorizes sensitive actions).
 | Command | What it does | Gating |
 |---|---|---|
 | `/ph code <prompt> [repo]` | Ask PostHog Code to work on a task | anyone |
+| `/ph idea` | Pitch an idea for the PostHog roadmap (see below) | anyone |
 | `/ph connect` | Connect this server to a PostHog project (returns a signed confirmation link; also provisions the analytics project) | Manage Server |
 | `/ph analytics events` | Choose which events are sent (multi-select) | Manage Server |
 | `/ph analytics options` | Toggle bot filtering, message sampling, and message-content capture | Manage Server |
@@ -106,6 +107,48 @@ Discord reply (threads, messages, reactions) back through the bot's actions API.
 [the bridge](#posthog-code-bridge).
 
 The PostHog project API key (`phc_…`) is a publishable, capture-only key (it cannot read data ), so storing it per guild is low-risk.
+
+## Roadmap ideas
+
+Two ways to pitch a feature idea from Discord, both landing on the same PostHog
+survey the form at [posthog.com/roadmap](https://posthog.com/roadmap?idea=new)
+writes to:
+
+- **`/ph idea`** — opens a modal to write one from scratch.
+- **Right-click a message → Apps → "Submit as roadmap idea"** — opens the same
+  modal, prefilled with that message. Good for the moment someone says "i wish
+  PostHog did this" in passing. The text stays editable, because a chat message
+  is rarely a well-formed idea on its own.
+
+Both submit a `survey sent` event with the idea, an optional email, and:
+
+| Property | Why |
+|---|---|
+| `submission_source: "discord"` | Website submissions don't set it, so the two stay distinguishable with no change to posthog.com |
+| `discord_message_url` | Jump link to the original message |
+| `discord_author_id` | Also the event's `distinct_id` — the idea belongs to whoever wrote it |
+| `discord_submitted_by` | Who clicked, which separates curation from authorship |
+| `guild_*` / `channel_*` | Where it came from |
+
+Only the **link** is sent, never the surrounding conversation — whoever reads
+the results clicks through to Discord for context. Lifting somebody else's
+message is allowed, so the bot replies in the channel naming the author: they
+never agreed to it, so at minimum they should see that it happened. Submitting
+your own idea is confirmed privately instead.
+
+The survey has no server-side validation, so submissions are rate limited to one
+per member per minute.
+
+### Configuration
+
+Unlike everything else in the bot this reports to **one fixed project** — the
+survey lives there, not in whichever project a guild bound with `/ph connect` —
+so it has its own `ROADMAP_*` variables (see `.env.example`). Leave
+`ROADMAP_SURVEY_ID` unset and the feature is off: the message action isn't
+registered at all and `/ph idea` declines.
+
+Set `ROADMAP_GUILD_IDS` on any public install. Empty means every server the bot
+is in can write into the survey.
 
 ## Custom event triggers
 
@@ -204,6 +247,7 @@ reachable by PostHog.
 
 - **Analytics** sends metadata only unless an admin opts the server in with `/ph analytics options capture_message_content:true` (off by default, including across upgrades). See [Message content](#message-content).
 - Content also leaves Discord via the **PostHog Code bridge**: in a forum an admin explicitly opts in with `/ph forums watch`, post and reply **content** is forwarded (that's the point — the agent needs it). Nothing is forwarded from unwatched channels.
+- **Roadmap ideas** send the submitted text (someone typed it into the modal, so it's deliberate) plus a link to the source message — never the surrounding conversation. See [Roadmap ideas](#roadmap-ideas).
 - Configuration (including the API key) is only ever shown to admins via **ephemeral** replies, and the key is masked in `/ph analytics status`.
 
 ## Deployment
@@ -231,6 +275,7 @@ src/
   config.ts          bot-level env (token, client id, db path, bridge secret/bind)
   bridge/            PostHog Code bridge: forward (out), actionsServer (in), auth, dedupe
   commands/ph.ts     the single /ph slash command definition
+  commands/idea.ts   the "Submit as roadmap idea" message action definition
   db.ts              SQLite schema + per-guild config & triggers repos
   configCache.ts     in-memory config cache (hot path)
   triggersCache.ts   in-memory per-guild triggers cache (hot path)
