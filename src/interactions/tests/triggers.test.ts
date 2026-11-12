@@ -144,4 +144,54 @@ describe("handleTriggerAdd", () => {
     await handleTriggerAdd(i);
     expect(replyContent(i)).toContain("at most");
   });
+
+  it("creates a rate trigger with a new-member filter and default cooldown", async () => {
+    const i = makeInteraction({
+      name: "Spam raid",
+      event_name: "community_spam_raid",
+      source: "message",
+      keywords: "http://,https://,discord.gg/",
+      rate_count: 15,
+      rate_window_minutes: 5,
+      new_member_hours: 24,
+    });
+    await handleTriggerAdd(i);
+    expect(addTriggerMock.mock.calls[0][1]).toMatchObject({
+      source: "message",
+      conditions: {
+        content: { mode: "keywords", terms: ["http://", "https://", "discord.gg/"] },
+        newMemberHours: 24,
+        rate: { count: 15, windowMinutes: 5, cooldownMinutes: 30 },
+      },
+    });
+    expect(replyContent(i)).toContain("≥15 in 5m (cooldown 30m)");
+    expect(replyContent(i)).toContain("joined < 24h ago");
+  });
+
+  it("requires rate_count and rate_window_minutes together", async () => {
+    const i = makeInteraction({
+      name: "x", event_name: "x", source: "message", rate_count: 5,
+    });
+    await handleTriggerAdd(i);
+    expect(addTriggerMock).not.toHaveBeenCalled();
+    expect(replyContent(i)).toContain("must be set together");
+  });
+
+  it("rejects cooldown without a rate", async () => {
+    const i = makeInteraction({
+      name: "x", event_name: "x", source: "message", cooldown_minutes: 10,
+    });
+    await handleTriggerAdd(i);
+    expect(addTriggerMock).not.toHaveBeenCalled();
+    expect(replyContent(i)).toContain("only applies with");
+  });
+
+  it("rejects rate options on non-message sources", async () => {
+    const i = makeInteraction({
+      name: "x", event_name: "x", source: "reaction", rate_count: 5, rate_window_minutes: 5,
+    });
+    await handleTriggerAdd(i);
+    expect(addTriggerMock).not.toHaveBeenCalled();
+    expect(replyContent(i)).toContain("rate_count");
+  });
 });

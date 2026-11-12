@@ -15,6 +15,7 @@ import {
   type TriggerConditions,
   type TriggerSource,
 } from "@/db.js";
+import { DEFAULT_COOLDOWN_MINUTES } from "@/rateWindow.js";
 import { nowMs } from "@/time.js";
 
 const EPHEMERAL = { flags: MessageFlags.Ephemeral } as const;
@@ -43,9 +44,10 @@ function parseEmoji(raw: string): NonNullable<TriggerConditions["emoji"]> {
 }
 
 /** Which option fields are valid for each source. */
+const RATE_OPTIONS = ["rate_count", "rate_window_minutes", "cooldown_minutes", "new_member_hours"];
 const ALLOWED: Record<TriggerSource, Set<string>> = {
-  message: new Set(["channel", "contains", "keywords", "starts_with"]),
-  file: new Set(["channel", "contains", "keywords", "starts_with", "file_ext"]),
+  message: new Set(["channel", "contains", "keywords", "starts_with", ...RATE_OPTIONS]),
+  file: new Set(["channel", "contains", "keywords", "starts_with", "file_ext", ...RATE_OPTIONS]),
   reaction: new Set(["channel", "emoji"]),
   member_join: new Set([]),
   voice_join: new Set(["channel"]),
@@ -76,6 +78,10 @@ export async function handleTriggerAdd(
   const startsWith = opts.getString("starts_with");
   const fileExt = opts.getString("file_ext");
   const emoji = opts.getString("emoji");
+  const rateCount = opts.getInteger("rate_count");
+  const rateWindow = opts.getInteger("rate_window_minutes");
+  const cooldown = opts.getInteger("cooldown_minutes");
+  const newMemberHours = opts.getInteger("new_member_hours");
 
   // Reject options that don't apply to the chosen source.
   const provided: Record<string, unknown> = {
@@ -85,6 +91,10 @@ export async function handleTriggerAdd(
     starts_with: startsWith,
     file_ext: fileExt,
     emoji,
+    rate_count: rateCount,
+    rate_window_minutes: rateWindow,
+    cooldown_minutes: cooldown,
+    new_member_hours: newMemberHours,
   };
   const allowed = ALLOWED[source];
   const stray = Object.entries(provided)
@@ -113,6 +123,22 @@ export async function handleTriggerAdd(
     return;
   }
 
+  // Rate needs both halves; cooldown only means something with a rate.
+  if ((rateCount == null) !== (rateWindow == null)) {
+    await interaction.reply({
+      content: "❌ `rate_count` and `rate_window_minutes` must be set together.",
+      ...EPHEMERAL,
+    });
+    return;
+  }
+  if (cooldown != null && rateCount == null) {
+    await interaction.reply({
+      content: "❌ `cooldown_minutes` only applies with `rate_count` + `rate_window_minutes`.",
+      ...EPHEMERAL,
+    });
+    return;
+  }
+
   // Build conditions.
   const conditions: TriggerConditions = {};
   if (channel) conditions.channelIds = [channel.id];
@@ -126,6 +152,13 @@ export async function handleTriggerAdd(
       e.replace(/^\./, "").toLowerCase()
     );
   if (emoji) conditions.emoji = parseEmoji(emoji);
+  if (newMemberHours != null) conditions.newMemberHours = newMemberHours;
+  if (rateCount != null && rateWindow != null)
+    conditions.rate = {
+      count: rateCount,
+      windowMinutes: rateWindow,
+      cooldownMinutes: cooldown ?? DEFAULT_COOLDOWN_MINUTES,
+    };
 
   let id: number;
   try {
@@ -239,6 +272,12 @@ function summarizeTrigger(t: Trigger): string {
   if (c.emoji)
     parts.push(
       `emoji: ${c.emoji.kind === "custom" ? `:${c.emoji.name}:` : c.emoji.value}`
+    );
+  if (c.newMemberHours != null)
+    parts.push(`joined < ${c.newMemberHours}h ago`);
+  if (c.rate)
+    parts.push(
+      `≥${c.rate.count} in ${c.rate.windowMinutes}m (cooldown ${c.rate.cooldownMinutes}m)`
     );
   const cond = parts.length ? parts.join(" · ") : "any";
   const status = t.enabled ? "" : " _(disabled)_";

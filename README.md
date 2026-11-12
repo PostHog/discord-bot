@@ -115,8 +115,8 @@ A trigger has a **source** and optional **conditions** (all conditions must matc
 
 | Source | Fires when… | Conditions |
 |---|---|---|
-| `message` | a message is posted | `channel`, and one of `contains` / `keywords` / `starts_with` |
-| `file` | a message with an attachment is posted | `channel`, `file_ext` (e.g. `pdf,png`) |
+| `message` | a message is posted | `channel`, one of `contains` / `keywords` / `starts_with`, `new_member_hours`, rate (below) |
+| `file` | a message with an attachment is posted | `channel`, `file_ext` (e.g. `pdf,png`), `new_member_hours`, rate (below) |
 | `reaction` | a reaction is added | `channel`, `emoji` |
 | `member_join` | a user joins | — |
 | `voice_join` | a user joins a voice channel | `channel` (the voice channel) |
@@ -135,6 +135,25 @@ Examples:
 # 🎫 reaction anywhere → ticket_opened
 /ph triggers add name:Tickets event_name:ticket_opened source:reaction emoji:🎫
 ```
+
+### Rate (burst) triggers
+
+Add `rate_count` + `rate_window_minutes` to a `message`/`file` trigger to fire **once**
+when that many matching messages happen server-wide within the window, then stay
+quiet for `cooldown_minutes` (default 30). `new_member_hours` limits matching to
+members who joined less than X hours ago (works without rate too).
+
+```
+# 15 links from brand-new members within 5 minutes → community_spam_raid
+/ph triggers add name:Spam raid event_name:community_spam_raid source:message \
+    keywords:http://,https://,discord.gg/ rate_count:15 rate_window_minutes:5 \
+    new_member_hours:24
+```
+
+The event carries `rate_count`, `rate_window_minutes`, `unique_author_count`,
+`sample_author_ids`, `channel_ids`, `first_message_id`, `last_message_id`, and more.
+Windows live in memory, so a restart resets them. Bot messages never count. See
+[`docs/rate-triggers.md`](docs/rate-triggers.md).
 
 Each fired event carries auto-context: channel info, what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
 

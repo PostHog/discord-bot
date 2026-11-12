@@ -54,6 +54,17 @@ export interface TriggerConditions {
   emoji?:
     | { kind: "unicode"; value: string }
     | { kind: "custom"; id: string; name: string };
+  /**
+   * Message/file source: only count authors who joined the server less than
+   * this many hours ago. Authors with an unknown join time never match.
+   */
+  newMemberHours?: number;
+  /**
+   * Message/file source: fire once when `count` matching messages happen within
+   * `windowMinutes` (server-wide), then stay quiet for `cooldownMinutes`.
+   * See docs/rate-triggers.md.
+   */
+  rate?: { count: number; windowMinutes: number; cooldownMinutes: number };
 }
 
 export interface Trigger {

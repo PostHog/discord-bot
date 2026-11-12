@@ -1,4 +1,5 @@
 import { listTriggers, type Trigger  } from "@/db.js";
+import { resetRateState } from "@/rateWindow.js";
 
 /**
  * In-memory cache of each guild's triggers, so the hot per-event path (every
@@ -18,4 +19,7 @@ export function getGuildTriggers(guildId: string): Trigger[] {
 
 export function invalidateTriggersCache(guildId: string): void {
   cache.delete(guildId);
+  // Rate windows belong to the old trigger set; start fresh. This also frees
+  // memory for removed triggers and guilds the bot has left.
+  resetRateState(guildId);
 }
