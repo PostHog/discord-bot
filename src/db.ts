@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 
 import { config } from "@/config.js";
 import { invalidateConfigCache } from "@/configCache.js";
+import { resetRateState } from "@/rateWindow.js";
 import { invalidateTriggersCache } from "@/triggersCache.js";
 import { sanitizeEventKeys } from "@/events-catalog.js";
 
@@ -281,6 +282,7 @@ export function purgeGuild(guildId: string): void {
   deleteAllWatchedThreadsStmt.run(guildId);
   invalidateConfigCache(guildId);
   invalidateTriggersCache(guildId);
+  resetRateState(guildId);
 }
 
 // ---------------------------------------------------------------------------
@@ -383,8 +385,10 @@ export function addTrigger(
 /** Remove a trigger by id. Returns true if a row was deleted. */
 export function removeTrigger(guildId: string, id: number): boolean {
   const result = deleteTriggerStmt.run(guildId, id);
+  if (result.changes === 0) return false;
   invalidateTriggersCache(guildId);
-  return result.changes > 0;
+  resetRateState(guildId, id);
+  return true;
 }
 
 /** Enable/disable a trigger by id. Returns true if a row was updated. */
@@ -395,8 +399,10 @@ export function setTriggerEnabled(
   now: number
 ): boolean {
   const result = setTriggerEnabledStmt.run(enabled ? 1 : 0, now, guildId, id);
+  if (result.changes === 0) return false;
   invalidateTriggersCache(guildId);
-  return result.changes > 0;
+  resetRateState(guildId, id);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

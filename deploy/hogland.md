@@ -230,5 +230,6 @@ sudo systemctl restart discord-bot
 sudo journalctl -u discord-bot -f
 ```
 
-Registered slash commands persist across restarts, so a redeploy needs no
-Discord-side action.
+On startup the bot re-registers `/ph` in every server it's in, so a deploy
+that adds or changes command options (like the rate trigger options) shows up
+without any Discord-side action. Allow a few seconds after restart.

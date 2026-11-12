@@ -49,8 +49,9 @@ not count**. That is the conservative choice for a pager.
   return a burst summary, clear the hits, set `cooldownUntil = now + cooldown`.
 - Messages from bots (including webhooks) are never counted, so a bot message
   can't tip the window and then be dropped by the `ignore_bots` capture gate.
-- State for a guild is cleared when its triggers change (add/remove/toggle) or
-  the bot leaves the guild. That hooks into `invalidateTriggersCache`.
+- Removing or toggling a trigger clears only **that** trigger's window and
+  cooldown, so editing other triggers mid-raid doesn't re-arm a cooldown and
+  page twice. Adding a trigger clears nothing. Leaving a guild clears all of it.
 - **Restart resets all windows and cooldowns.** That's acceptable: a raid that
   spans a restart either re-fires (cooldown lost) or needs N fresh messages.
 

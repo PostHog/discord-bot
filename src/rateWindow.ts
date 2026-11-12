@@ -104,8 +104,17 @@ function summarizeBurst(
   };
 }
 
-/** Drop all windows for a guild. Called whenever its triggers change. */
-export function resetRateState(guildId: string): void {
+/**
+ * Drop rate windows (counts and cooldowns). With a trigger id, only that
+ * trigger's window is dropped, so editing one trigger mid-raid doesn't re-arm
+ * the cooldown of another and page twice. Without one, the whole guild goes
+ * (used when the bot leaves a guild).
+ */
+export function resetRateState(guildId: string, triggerId?: number): void {
+  if (triggerId !== undefined) {
+    windows.delete(key(guildId, triggerId));
+    return;
+  }
   const prefix = `${guildId}:`;
   for (const k of windows.keys()) {
     if (k.startsWith(prefix)) windows.delete(k);

@@ -123,4 +123,17 @@ describe("recordRateHit — cooldown", () => {
     // g2's window survived.
     expect(recordRateHit("g2", 1, rate, hit(T0 + 2))).not.toBeNull();
   });
+
+  it("resetRateState with a trigger id only clears that trigger", () => {
+    // Trigger 1 fires and goes into cooldown; trigger 2 has a partial window.
+    expect(fire(T0)).not.toBeNull();
+    recordRateHit("g1", 2, rate, hit(T0));
+    recordRateHit("g1", 2, rate, hit(T0 + 1));
+    resetRateState("g1", 2);
+    // Trigger 1's cooldown survived, so the raid doesn't page again.
+    expect(fire(T0 + 10)).toBeNull();
+    // Trigger 2 starts over: two more hits aren't enough.
+    expect(recordRateHit("g1", 2, rate, hit(T0 + 2))).toBeNull();
+    expect(recordRateHit("g1", 2, rate, hit(T0 + 3))).toBeNull();
+  });
 });
