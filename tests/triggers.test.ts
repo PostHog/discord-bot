@@ -298,12 +298,22 @@ describe("evaluateMessage — rate triggers", () => {
       distinctId: "u3",
       properties: { trigger_id: 42, rate_count: 3, first_message_id: expect.any(String) },
     });
+    const props = captureCustomEvent.mock.calls[0][0].properties;
+    expect(props.first_message_url).toBe(
+      `https://discord.com/channels/g1/c2/${props.first_message_id}`
+    );
+    expect(props.last_message_url).toBe(
+      `https://discord.com/channels/g1/c2/${props.last_message_id}`
+    );
+    // The base message_url is the message that tipped the threshold.
+    expect(props.message_url).toBe(props.last_message_url);
   });
 });
 
 function reaction(opts: { guildId?: string | null; channelId?: string; emoji?: { name: string | null; id: string | null } }) {
   return {
     message: {
+      id: "rm1",
       guildId: opts.guildId === undefined ? "g1" : opts.guildId,
       channelId: opts.channelId ?? "c1",
       channel: { id: opts.channelId ?? "c1", name: "general", type: 0 },
@@ -379,6 +389,10 @@ describe("runMessageTriggers", () => {
       trigger_name: "Refunds",
       trigger_source: "message",
     });
+    expect(arg.properties.message_id).toMatch(/^m\d+$/);
+    expect(arg.properties.message_url).toBe(
+      `https://discord.com/channels/g1/c1/${arg.properties.message_id}`
+    );
   });
 
   it("does nothing when there are no matches", () => {
@@ -395,5 +409,14 @@ describe("runReactionTriggers", () => {
     runReactionTriggers(reaction({}), user);
     expect(captureCustomEvent).toHaveBeenCalledTimes(1);
     expect(captureCustomEvent.mock.calls[0][0].actor).toBeUndefined();
+  });
+
+  it("links to the message that was reacted to", () => {
+    getGuildTriggers.mockReturnValue([trigger({ source: "reaction" })]);
+    runReactionTriggers(reaction({}), { id: "u9", partial: true } as never);
+    expect(captureCustomEvent.mock.calls[0][0].properties).toMatchObject({
+      message_id: "rm1",
+      message_url: "https://discord.com/channels/g1/c1/rm1",
+    });
   });
 });

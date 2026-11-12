@@ -33,7 +33,9 @@ describe("MessageCreate", () => {
   it("captures message_sent with metadata and runs triggers", () => {
     const msg = {
       inGuild: () => true,
+      id: "m1",
       guildId: "g1",
+      channelId: "c1",
       author,
       guild,
       channel,
@@ -55,6 +57,8 @@ describe("MessageCreate", () => {
       mention_count: 2,
       is_reply: false,
       has_embed: false,
+      message_id: "m1",
+      message_url: "https://discord.com/channels/g1/c1/m1",
     });
     // Text is handed to capture.ts as `content` (which gates it on the guild's
     // opt-in), never baked into properties here.
@@ -92,7 +96,9 @@ describe("MessageCreate", () => {
 describe("MessageUpdate", () => {
   const edited = (over: Record<string, unknown> = {}) => ({
     inGuild: () => true,
+    id: "m1",
     guildId: "g1",
+    channelId: "c1",
     editedTimestamp: 123,
     author,
     guild,
@@ -105,6 +111,10 @@ describe("MessageUpdate", () => {
     expect(captureForGuild).toHaveBeenCalledWith(
       expect.objectContaining({ event: "message_edited", distinctId: "u1" })
     );
+    expect(captureForGuild.mock.calls[0][0].properties).toMatchObject({
+      message_id: "m1",
+      message_url: "https://discord.com/channels/g1/c1/m1",
+    });
   });
 
   it("ignores embed-unfurl updates with no editedTimestamp", () => {
@@ -117,7 +127,9 @@ describe("MessageDelete", () => {
   it("captures message_deleted when the author is known", () => {
     client().fire(Events.MessageDelete, {
       inGuild: () => true,
+      id: "m1",
       guildId: "g1",
+      channelId: "c1",
       author,
       guild,
       channel,
@@ -125,6 +137,10 @@ describe("MessageDelete", () => {
     expect(captureForGuild).toHaveBeenCalledWith(
       expect.objectContaining({ event: "message_deleted" })
     );
+    expect(captureForGuild.mock.calls[0][0].properties).toMatchObject({
+      message_id: "m1",
+      message_url: "https://discord.com/channels/g1/c1/m1",
+    });
   });
 
   it("skips uncached deletes with no author", () => {

@@ -10,7 +10,7 @@ import type {
 
 import { captureCustomEvent, toPersonLike } from "@/capture.js";
 import type { Trigger, TriggerConditions } from "@/db.js";
-import { channelProps, guildProps } from "@/props.js";
+import { channelProps, guildProps, messageProps } from "@/props.js";
 import { recordRateHit } from "@/rateWindow.js";
 import { nowMs } from "@/time.js";
 import { getGuildTriggers } from "@/triggersCache.js";
@@ -231,6 +231,8 @@ export function runMessageTriggers(message: Message<true>): void {
   const baseProps = {
     ...guildProps(message.guild),
     ...channelProps(message.channel),
+    // For rate triggers this is the message that tipped the threshold.
+    ...messageProps(message),
   };
   for (const m of matches) {
     emit(message.guildId, m, message.author.id, toPersonLike(message.author), baseProps);
@@ -245,7 +247,11 @@ export function runReactionTriggers(
   if (!guildId) return;
   const matches = evaluateReaction(reaction);
   if (matches.length === 0) return;
-  const baseProps = { ...channelProps(reaction.message.channel) };
+  // message_* describes the message that was reacted to.
+  const baseProps = {
+    ...channelProps(reaction.message.channel),
+    ...messageProps(reaction.message),
+  };
   const actor = user.partial ? undefined : toPersonLike(user);
   for (const m of matches) {
     emit(guildId, m, user.id, actor, baseProps);

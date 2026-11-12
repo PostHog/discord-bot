@@ -1,7 +1,7 @@
 import { ChannelType } from "discord.js";
 import { describe, expect, it } from "vitest";
 
-import { channelProps, guildProps } from "@/props.js";
+import { channelProps, guildProps, messageProps, messageUrl } from "@/props.js";
 
 // Minimal channel/guild shapes — the helpers only read id/name/type.
 function chan(type: ChannelType, id = "c1", name: string | null = "general") {
@@ -89,5 +89,24 @@ describe("channelProps for threads", () => {
     const props = channelProps(thread(null));
     expect(props).not.toHaveProperty("parent_channel_id");
     expect(props).toMatchObject({ root_channel_id: "t1", root_channel_name: "help with X" });
+  });
+});
+
+describe("messageUrl / messageProps", () => {
+  it("builds a Discord deep link", () => {
+    expect(messageUrl("g1", "c1", "m1")).toBe("https://discord.com/channels/g1/c1/m1");
+  });
+
+  it("returns message_id and message_url for a guild message", () => {
+    expect(messageProps({ id: "m1", guildId: "g1", channelId: "c1" })).toEqual({
+      message_id: "m1",
+      message_url: "https://discord.com/channels/g1/c1/m1",
+    });
+  });
+
+  it("omits the url when there is no guild", () => {
+    expect(messageProps({ id: "m1", guildId: null, channelId: "c1" })).toEqual({
+      message_id: "m1",
+    });
   });
 });

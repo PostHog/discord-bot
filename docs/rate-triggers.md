@@ -56,11 +56,11 @@ not count**. That is the conservative choice for a pager.
 
 ## Event properties
 
-Base props (guild, channel of the last message) + `trigger_*`, plus:
+Base props (guild, channel, and `message_id`/`message_url` of the last message) + `trigger_*`, plus:
 `rate_count` (messages in the burst), `rate_threshold`, `rate_window_minutes`,
 `cooldown_minutes`, `burst_duration_seconds`, `unique_author_count`,
 `sample_author_ids` (≤10), `channel_ids` (unique), `first_message_id`,
-`last_message_id`, `first_message_at`, `new_member_hours` (if set). The PostHog
+`last_message_id`, `first_message_url`, `last_message_url`, `first_message_at`, `new_member_hours` (if set). The PostHog
 `distinct_id` is the author of the message that tipped the threshold (same as
 other message triggers).
 

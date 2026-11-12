@@ -37,6 +37,8 @@ describe("recordRateHit — threshold", () => {
       burst_duration_seconds: 120,
       first_message_id: "m1",
       last_message_id: "m3",
+      first_message_url: "https://discord.com/channels/g1/c1/m1",
+      last_message_url: "https://discord.com/channels/g1/c1/m3",
       first_message_at: new Date(T0).toISOString(),
     });
   });

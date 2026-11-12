@@ -1,3 +1,5 @@
+import { messageUrl } from "@/props.js";
+
 /**
  * Per-trigger sliding windows for rate (burst) triggers. See docs/rate-triggers.md.
  *
@@ -71,13 +73,17 @@ export function recordRateHit(
 
   if (state.hits.length < rate.count) return null;
 
-  const burst = summarizeBurst(state.hits, rate);
+  const burst = summarizeBurst(guildId, state.hits, rate);
   state.hits = [];
   state.cooldownUntil = hit.ts + rate.cooldownMinutes * MINUTE_MS;
   return burst;
 }
 
-function summarizeBurst(hits: RateHit[], rate: RateConfig): Record<string, unknown> {
+function summarizeBurst(
+  guildId: string,
+  hits: RateHit[],
+  rate: RateConfig
+): Record<string, unknown> {
   const first = hits[0];
   const last = hits[hits.length - 1];
   const authors = [...new Set(hits.map((h) => h.authorId))];
@@ -92,6 +98,8 @@ function summarizeBurst(hits: RateHit[], rate: RateConfig): Record<string, unkno
     channel_ids: [...new Set(hits.map((h) => h.channelId))],
     first_message_id: first.messageId,
     last_message_id: last.messageId,
+    first_message_url: messageUrl(guildId, first.channelId, first.messageId),
+    last_message_url: messageUrl(guildId, last.channelId, last.messageId),
     first_message_at: new Date(first.ts).toISOString(),
   };
 }

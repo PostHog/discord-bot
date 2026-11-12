@@ -15,7 +15,7 @@ Every event is attached to a `discord_server` group keyed on the guild id, so yo
 
 ## Supported events
 
-`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `member_roster`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata, see `src/events-catalog.ts` and the handlers in `src/events/`.
+`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `member_roster`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata (message events also carry `message_id` / `message_url`), see `src/events-catalog.ts` and the handlers in `src/events/`.
 
 ### `member_roster`
 
@@ -151,11 +151,11 @@ members who joined less than X hours ago (works without rate too).
 ```
 
 The event carries `rate_count`, `rate_window_minutes`, `unique_author_count`,
-`sample_author_ids`, `channel_ids`, `first_message_id`, `last_message_id`, and more.
+`sample_author_ids`, `channel_ids`, `first_message_url`, `last_message_url`, and more.
 Windows live in memory, so a restart resets them. Bot messages never count. See
 [`docs/rate-triggers.md`](docs/rate-triggers.md).
 
-Each fired event carries auto-context: channel info, what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
+Each fired event carries auto-context: channel info, `message_id` / `message_url` (a deep link to the message; for reactions, the reacted-to message), what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
 
 Matching is simple and case-insensitive (`contains` / `keywords` / `starts_with`). Each server can have **up to 50 triggers**.
 
