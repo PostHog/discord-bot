@@ -51,9 +51,13 @@ not count**. That is the conservative choice for a pager.
   can't tip the window and then be dropped by the `ignore_bots` capture gate.
 - Removing or toggling a trigger clears only **that** trigger's window and
   cooldown, so editing other triggers mid-raid doesn't re-arm a cooldown and
-  page twice. Adding a trigger clears nothing. Leaving a guild clears all of it.
+  page twice. Toggling to the state it's already in is a no-op. Adding a
+  trigger clears nothing. Leaving a guild clears all of it.
 - **Restart resets all windows and cooldowns.** That's acceptable: a raid that
   spans a restart either re-fires (cooldown lost) or needs N fresh messages.
+- **Rollback warning:** builds before this feature ignore `rate` and
+  `newMemberHours`, so a rate trigger would fire on *every* matching message.
+  Disable rate triggers before rolling back past this change.
 
 ## Event properties
 

@@ -245,9 +245,19 @@ export async function handleTriggerToggle(
   const id = interaction.options.getInteger("id", true);
   const enabled = interaction.options.getBoolean("enabled", true);
   // Guard: only toggle if it exists, so we can give a useful message.
-  if (!getTrigger(interaction.guildId, id)) {
+  const existing = getTrigger(interaction.guildId, id);
+  if (!existing) {
     await interaction.reply({
       content: `❌ No trigger **#${id}** in this server.`,
+      ...EPHEMERAL,
+    });
+    return;
+  }
+  // No-op if already in that state: toggling resets the rate window, so a
+  // repeated `enable` mid-raid would wipe the cooldown and page twice.
+  if (existing.enabled === enabled) {
+    await interaction.reply({
+      content: `ℹ️ Trigger **#${id}** is already ${enabled ? "enabled" : "disabled"}.`,
       ...EPHEMERAL,
     });
     return;

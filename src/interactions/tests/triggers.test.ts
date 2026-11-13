@@ -4,12 +4,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // instanceof check works) and everything else.
 vi.mock("@/db.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/db.js")>();
-  return { ...actual, addTrigger: vi.fn(() => 5) };
+  return {
+    ...actual,
+    addTrigger: vi.fn(() => 5),
+    getTrigger: vi.fn(),
+    setTriggerEnabled: vi.fn(() => true),
+  };
 });
 
-const { handleTriggerAdd } = await import("@/interactions/triggers.js");
-const { addTrigger, TriggerLimitError } = await import("@/db.js");
+const { handleTriggerAdd, handleTriggerToggle } = await import(
+  "@/interactions/triggers.js"
+);
+const { addTrigger, TriggerLimitError, getTrigger, setTriggerEnabled } =
+  await import("@/db.js");
 const addTriggerMock = vi.mocked(addTrigger);
+const getTriggerMock = vi.mocked(getTrigger);
+const setTriggerEnabledMock = vi.mocked(setTriggerEnabled);
 
 interface ReplyArg {
   content: string;
@@ -193,5 +203,23 @@ describe("handleTriggerAdd", () => {
     await handleTriggerAdd(i);
     expect(addTriggerMock).not.toHaveBeenCalled();
     expect(replyContent(i)).toContain("rate_count");
+  });
+});
+
+describe("handleTriggerToggle", () => {
+  it("toggles when the state changes", async () => {
+    getTriggerMock.mockReturnValue({ id: 3, enabled: false } as never);
+    const i = makeInteraction({ id: 3, enabled: true });
+    await handleTriggerToggle(i);
+    expect(setTriggerEnabledMock).toHaveBeenCalledTimes(1);
+    expect(replyContent(i)).toContain("Enabled");
+  });
+
+  it("is a no-op when already in that state (keeps the rate cooldown)", async () => {
+    getTriggerMock.mockReturnValue({ id: 3, enabled: true } as never);
+    const i = makeInteraction({ id: 3, enabled: true });
+    await handleTriggerToggle(i);
+    expect(setTriggerEnabledMock).not.toHaveBeenCalled();
+    expect(replyContent(i)).toContain("already enabled");
   });
 });
