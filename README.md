@@ -15,7 +15,7 @@ Every event is attached to a `discord_server` group keyed on the guild id, so yo
 
 ## Supported events
 
-`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `member_roster`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata, see `src/events-catalog.ts` and the handlers in `src/events/`.
+`message_sent`, `message_edited`, `message_deleted`, `member_joined`, `member_left`, `member_banned`, `member_roster`, `reaction_added`, `reaction_removed`, `voice_channel_joined`, `voice_channel_left`, `voice_channel_moved`, `thread_created`, `server_snapshot`. Each carries `guild_*` / `channel_*` metadata (message events also carry `message_id` / `message_url`), see `src/events-catalog.ts` and the handlers in `src/events/`.
 
 ### `member_roster`
 
@@ -115,8 +115,8 @@ A trigger has a **source** and optional **conditions** (all conditions must matc
 
 | Source | Fires when… | Conditions |
 |---|---|---|
-| `message` | a message is posted | `channel`, and one of `contains` / `keywords` / `starts_with` |
-| `file` | a message with an attachment is posted | `channel`, `file_ext` (e.g. `pdf,png`) |
+| `message` | a message is posted | `channel`, one of `contains` / `keywords` / `starts_with`, `new_member_hours`, rate (below) |
+| `file` | a message with an attachment is posted | `channel`, `file_ext` (e.g. `pdf,png`), `new_member_hours`, rate (below) |
 | `reaction` | a reaction is added | `channel`, `emoji` |
 | `member_join` | a user joins | — |
 | `voice_join` | a user joins a voice channel | `channel` (the voice channel) |
@@ -136,7 +136,26 @@ Examples:
 /ph triggers add name:Tickets event_name:ticket_opened source:reaction emoji:🎫
 ```
 
-Each fired event carries auto-context: channel info, what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
+### Rate (burst) triggers
+
+Add `rate_count` + `rate_window_minutes` to a `message`/`file` trigger to fire **once**
+when that many matching messages happen server-wide within the window, then stay
+quiet for `cooldown_minutes` (default 30). `new_member_hours` limits matching to
+members who joined less than X hours ago (works without rate too).
+
+```
+# 15 links from brand-new members within 5 minutes → community_spam_raid
+/ph triggers add name:Spam raid event_name:community_spam_raid source:message \
+    keywords:http://,https://,discord.gg/ rate_count:15 rate_window_minutes:5 \
+    new_member_hours:24
+```
+
+The event carries `rate_count`, `rate_window_minutes`, `unique_author_count`,
+`sample_author_ids`, `channel_ids`, `first_message_url`, `last_message_url`, and more.
+Windows live in memory, so a restart resets them. Bot messages never count. See
+[`docs/rate-triggers.md`](docs/rate-triggers.md).
+
+Each fired event carries auto-context: channel info, `message_id` / `message_url` (a deep link to the message; for reactions, the reacted-to message), what matched (`matched_term` / `matched_emoji` / `file_name`), `trigger_name` / `trigger_id` / `trigger_source`, and the acting Discord user as the PostHog person.
 
 Matching is simple and case-insensitive (`contains` / `keywords` / `starts_with`). Each server can have **up to 50 triggers**.
 

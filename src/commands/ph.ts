@@ -162,6 +162,35 @@ export const phCommand = new SlashCommandBuilder()
           .addStringOption((o) =>
             o.setName("emoji").setDescription("Emoji to match (reaction)").setMaxLength(100)
           )
+          // Rate/burst options — see docs/rate-triggers.md.
+          .addIntegerOption((o) =>
+            o
+              .setName("rate_count")
+              .setDescription("Fire once N matching messages happen in the window (message/file)")
+              .setMinValue(2)
+              .setMaxValue(500)
+          )
+          .addIntegerOption((o) =>
+            o
+              .setName("rate_window_minutes")
+              .setDescription("Window for rate_count, in minutes (message/file)")
+              .setMinValue(1)
+              .setMaxValue(60)
+          )
+          .addIntegerOption((o) =>
+            o
+              .setName("cooldown_minutes")
+              .setDescription("After a rate trigger fires, stay quiet this long (default 30)")
+              .setMinValue(1)
+              .setMaxValue(1440)
+          )
+          .addIntegerOption((o) =>
+            o
+              .setName("new_member_hours")
+              .setDescription("Only count members who joined less than X hours ago (message/file)")
+              .setMinValue(1)
+              .setMaxValue(720)
+          )
       )
       .addSubcommand((sub) =>
         sub.setName("list").setDescription("List this server's triggers")

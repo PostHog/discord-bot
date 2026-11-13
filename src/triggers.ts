@@ -10,7 +10,9 @@ import type {
 
 import { captureCustomEvent, toPersonLike } from "@/capture.js";
 import type { Trigger, TriggerConditions } from "@/db.js";
-import { channelProps, guildProps } from "@/props.js";
+import { channelProps, guildProps, messageProps } from "@/props.js";
+import { recordRateHit } from "@/rateWindow.js";
+import { nowMs } from "@/time.js";
 import { getGuildTriggers } from "@/triggersCache.js";
 
 /** A trigger that matched, plus the auto-context describing *what* matched. */
@@ -57,6 +59,23 @@ export function fileExtension(name: string): string {
   return i > 0 ? name.slice(i + 1).toLowerCase() : "";
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+/**
+ * New-member filter passes if not configured, or the author joined less than
+ * `hours` ago. An unknown join time fails: for a pager, missing a borderline
+ * message is better than counting established members.
+ */
+export function matchNewMember(
+  hours: number | undefined,
+  joinedTimestamp: number | null | undefined,
+  now: number
+): boolean {
+  if (hours == null) return true;
+  if (joinedTimestamp == null) return false;
+  return now - joinedTimestamp < hours * HOUR_MS;
+}
+
 /** Does the emoji condition match the reacted emoji? */
 export function matchEmoji(
   cond: NonNullable<TriggerConditions["emoji"]>,
@@ -77,6 +96,7 @@ function enabledTriggers(guildId: string): Trigger[] {
 /** Evaluate message + file triggers against a guild message. */
 export function evaluateMessage(message: Message<true>): TriggerMatch[] {
   const out: TriggerMatch[] = [];
+  const now = nowMs();
   for (const trigger of enabledTriggers(message.guildId)) {
     if (trigger.source !== "message" && trigger.source !== "file") continue;
     const c = trigger.conditions;
@@ -100,6 +120,34 @@ export function evaluateMessage(message: Message<true>): TriggerMatch[] {
       const res = matchContent(message.content, c.content);
       if (!res.ok) continue;
       matchProps.matched_term = res.term;
+    }
+
+    if (c.newMemberHours != null) {
+      const joined = message.member?.joinedTimestamp;
+      if (!matchNewMember(c.newMemberHours, joined, now)) continue;
+      matchProps.new_member_hours = c.newMemberHours;
+      matchProps.member_joined_hours_ago =
+        Math.round(((now - joined!) / HOUR_MS) * 10) / 10;
+    }
+
+    // Rate gate: count this match, fire only when the window hits the threshold.
+    // Bots/webhooks never count (they'd be dropped by the ignore_bots gate after
+    // already consuming the burst).
+    if (c.rate) {
+      if (message.author.bot) continue;
+      const burst = recordRateHit(message.guildId, trigger.id, c.rate, {
+        ts: now,
+        authorId: message.author.id,
+        channelId: message.channelId,
+        messageId: message.id,
+      });
+      if (!burst) continue;
+      // Per-message details describe only the last message; drop them so the
+      // event describes the burst.
+      delete matchProps.member_joined_hours_ago;
+      delete matchProps.file_name;
+      delete matchProps.file_extension;
+      Object.assign(matchProps, burst);
     }
 
     out.push({ trigger, matchProps });
@@ -183,6 +231,8 @@ export function runMessageTriggers(message: Message<true>): void {
   const baseProps = {
     ...guildProps(message.guild),
     ...channelProps(message.channel),
+    // For rate triggers this is the message that tipped the threshold.
+    ...messageProps(message),
   };
   for (const m of matches) {
     emit(message.guildId, m, message.author.id, toPersonLike(message.author), baseProps);
@@ -197,7 +247,11 @@ export function runReactionTriggers(
   if (!guildId) return;
   const matches = evaluateReaction(reaction);
   if (matches.length === 0) return;
-  const baseProps = { ...channelProps(reaction.message.channel) };
+  // message_* describes the message that was reacted to.
+  const baseProps = {
+    ...channelProps(reaction.message.channel),
+    ...messageProps(reaction.message),
+  };
   const actor = user.partial ? undefined : toPersonLike(user);
   for (const m of matches) {
     emit(guildId, m, user.id, actor, baseProps);
