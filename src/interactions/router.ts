@@ -4,6 +4,7 @@ import {
   type Interaction,
   MessageFlags,
   type MessageComponentInteraction,
+  type MessageContextMenuCommandInteraction,
   type ModalSubmitInteraction,
   PermissionFlagsBits,
 } from "discord.js";
@@ -15,6 +16,7 @@ import {
   handleModalForward,
   handleRepoAutocomplete,
 } from "@/interactions/bridge.js";
+import { IDEA_MESSAGE_COMMAND_NAME } from "@/commands/idea.js";
 import { handleDisableCommand } from "@/interactions/disable.js";
 import { EVENTS_SELECT_ID, handleEventsCommand, handleEventsSelect } from "@/interactions/events.js";
 import {
@@ -22,6 +24,12 @@ import {
   handleForumsUnwatch,
   handleForumsWatch,
 } from "@/interactions/forums.js";
+import {
+  handleIdeaCommand,
+  handleIdeaMessageAction,
+  handleIdeaModalSubmit,
+  IDEA_MODAL_PREFIX,
+} from "@/interactions/idea.js";
 import { handleOptionsCommand } from "@/interactions/options.js";
 import { handleStatusCommand } from "@/interactions/status.js";
 import { handleTestCommand } from "@/interactions/test.js";
@@ -39,6 +47,8 @@ import {
  * - `analytics` / `triggers` groups are handled **locally** and gated to
  *   Manage Server (the gate is per-branch, not global, because `code` and the
  *   PostHog-rendered components must stay open to everyone).
+ * - `idea` and the roadmap-idea message action are handled **locally** and stay
+ *   open to everyone (see `interactions/idea.ts`).
  * - `code` / `connect` and any non-analytics component/modal are **forwarded**
  *   to PostHog Code (see `interactions/bridge.ts`).
  */
@@ -46,6 +56,9 @@ export async function routeInteraction(interaction: Interaction): Promise<void> 
   try {
     if (interaction.isAutocomplete()) return await routeAutocomplete(interaction);
     if (interaction.isChatInputCommand()) return await routeCommand(interaction);
+    if (interaction.isMessageContextMenuCommand()) {
+      return await routeMessageAction(interaction);
+    }
     if (interaction.isModalSubmit()) return await routeModal(interaction);
     if (interaction.isMessageComponent()) return await routeComponent(interaction);
   } catch (err) {
@@ -82,6 +95,11 @@ async function routeCommand(interaction: ChatInputCommandInteraction): Promise<v
     if (group === "analytics") return await dispatchAnalytics(interaction, sub);
     if (group === "triggers") return await dispatchTrigger(interaction, sub);
     return await dispatchForums(interaction, sub);
+  }
+
+  // Local and open to everyone — pitching an idea needs no permission.
+  if (sub === "idea") {
+    return await handleIdeaCommand(interaction);
   }
 
   // Forwarded commands.
@@ -146,8 +164,21 @@ async function dispatchTrigger(
   }
 }
 
+async function routeMessageAction(
+  interaction: MessageContextMenuCommandInteraction
+): Promise<void> {
+  if (interaction.commandName !== IDEA_MESSAGE_COMMAND_NAME) return;
+  if (!(await ensureGuild(interaction))) return;
+  return await handleIdeaMessageAction(interaction);
+}
+
 async function routeModal(interaction: ModalSubmitInteraction): Promise<void> {
-  // The bot has no local modals; every modal submit is PostHog-rendered.
+  // The roadmap-idea modal is the bot's only local one; everything else is
+  // PostHog-rendered and goes back to whoever drew it.
+  if (interaction.customId.startsWith(`${IDEA_MODAL_PREFIX}:`)) {
+    if (!(await ensureGuild(interaction))) return;
+    return await handleIdeaModalSubmit(interaction);
+  }
   return await handleModalForward(interaction);
 }
 

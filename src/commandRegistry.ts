@@ -1,6 +1,7 @@
 import { Routes } from "discord.js";
 
 import { rest } from "@/bridge/discordRest.js";
+import { ideaMessageCommand } from "@/commands/idea.js";
 import { phCommand } from "@/commands/ph.js";
 import { config } from "@/config.js";
 
@@ -13,12 +14,22 @@ import { config } from "@/config.js";
  * There is deliberately no global registration — per-guild is instant and
  * self-healing, and mixing the two namespaces would show duplicate commands.
  */
-export const commandPayload = [phCommand];
+/**
+ * Commands for one guild. `/ph` goes everywhere; the roadmap-idea message
+ * action is added only where the feature is configured, so members of other
+ * servers never see an entry that would refuse them.
+ */
+export function commandsForGuild(guildId: string): unknown[] {
+  const idea = config.roadmapIdea;
+  const ideaEnabled =
+    idea !== undefined && (idea.guildIds.length === 0 || idea.guildIds.includes(guildId));
+  return ideaEnabled ? [phCommand, ideaMessageCommand] : [phCommand];
+}
 
 export async function registerGuildCommands(guildId: string): Promise<void> {
   await rest.put(
     Routes.applicationGuildCommands(config.discordClientId, guildId),
-    { body: commandPayload }
+    { body: commandsForGuild(guildId) }
   );
 }
 
