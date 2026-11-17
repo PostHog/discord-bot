@@ -1,7 +1,7 @@
 import { type Client, Events, type Message, MessageType } from "discord.js";
 
 import { captureForGuild, toPersonLike } from "@/capture.js";
-import { channelProps, guildProps } from "@/props.js";
+import { channelProps, guildProps, messageProps } from "@/props.js";
 import { runMessageTriggers } from "@/triggers.js";
 
 /**
@@ -26,6 +26,7 @@ export function register(client: Client): void {
       properties: {
         ...guildProps(message.guild),
         ...channelProps(message.channel),
+        ...messageProps(message),
         message_length: message.content.length,
         attachment_count: message.attachments.size,
         mention_count:
@@ -57,6 +58,7 @@ export function register(client: Client): void {
       properties: {
         ...guildProps(newMessage.guild),
         ...channelProps(newMessage.channel),
+        ...messageProps(newMessage),
       },
     });
   });
@@ -75,6 +77,7 @@ export function register(client: Client): void {
       properties: {
         ...guildProps(message.guild),
         ...channelProps(message.channel),
+        ...messageProps(message),
       },
     });
   });

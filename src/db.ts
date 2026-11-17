@@ -4,6 +4,7 @@ import { dirname } from "node:path";
 
 import { config } from "@/config.js";
 import { invalidateConfigCache } from "@/configCache.js";
+import { resetRateState } from "@/rateWindow.js";
 import { invalidateTriggersCache } from "@/triggersCache.js";
 import { sanitizeEventKeys } from "@/events-catalog.js";
 
@@ -54,6 +55,17 @@ export interface TriggerConditions {
   emoji?:
     | { kind: "unicode"; value: string }
     | { kind: "custom"; id: string; name: string };
+  /**
+   * Message/file source: only count authors who joined the server less than
+   * this many hours ago. Authors with an unknown join time never match.
+   */
+  newMemberHours?: number;
+  /**
+   * Message/file source: fire once when `count` matching messages happen within
+   * `windowMinutes` (server-wide), then stay quiet for `cooldownMinutes`.
+   * See docs/rate-triggers.md.
+   */
+  rate?: { count: number; windowMinutes: number; cooldownMinutes: number };
 }
 
 export interface Trigger {
@@ -270,6 +282,7 @@ export function purgeGuild(guildId: string): void {
   deleteAllWatchedThreadsStmt.run(guildId);
   invalidateConfigCache(guildId);
   invalidateTriggersCache(guildId);
+  resetRateState(guildId);
 }
 
 // ---------------------------------------------------------------------------
@@ -372,8 +385,10 @@ export function addTrigger(
 /** Remove a trigger by id. Returns true if a row was deleted. */
 export function removeTrigger(guildId: string, id: number): boolean {
   const result = deleteTriggerStmt.run(guildId, id);
+  if (result.changes === 0) return false;
   invalidateTriggersCache(guildId);
-  return result.changes > 0;
+  resetRateState(guildId, id);
+  return true;
 }
 
 /** Enable/disable a trigger by id. Returns true if a row was updated. */
@@ -384,8 +399,10 @@ export function setTriggerEnabled(
   now: number
 ): boolean {
   const result = setTriggerEnabledStmt.run(enabled ? 1 : 0, now, guildId, id);
+  if (result.changes === 0) return false;
   invalidateTriggersCache(guildId);
-  return result.changes > 0;
+  resetRateState(guildId, id);
+  return true;
 }
 
 // ---------------------------------------------------------------------------

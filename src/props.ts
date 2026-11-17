@@ -84,3 +84,30 @@ export function guildProps(guild: Guild): Record<string, unknown> {
     guild_name: guild.name,
   };
 }
+
+/** Deep link that opens a message in the Discord client. */
+export function messageUrl(
+  guildId: string,
+  channelId: string,
+  messageId: string
+): string {
+  return `https://discord.com/channels/${guildId}/${channelId}/${messageId}`;
+}
+
+/**
+ * Common properties for anything about one specific message (message events,
+ * message/file triggers, and the reacted-to message for reaction triggers), so
+ * every alert can link straight to it. Works on partial messages: id, guildId
+ * and channelId are always present.
+ */
+export function messageProps(message: {
+  id: string;
+  guildId: string | null;
+  channelId: string;
+}): Record<string, unknown> {
+  if (!message.guildId) return { message_id: message.id };
+  return {
+    message_id: message.id,
+    message_url: messageUrl(message.guildId, message.channelId, message.id),
+  };
+}

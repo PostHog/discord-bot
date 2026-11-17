@@ -18,4 +18,6 @@ export function getGuildTriggers(guildId: string): Trigger[] {
 
 export function invalidateTriggersCache(guildId: string): void {
   cache.delete(guildId);
+  // Rate windows are NOT reset here: db.ts resets only the trigger that changed
+  // (see resetRateState), so other triggers keep their counts and cooldowns.
 }

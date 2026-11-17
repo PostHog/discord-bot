@@ -7,7 +7,10 @@ import type { Trigger } from "@/db.js";
 const { getGuildTriggers } = vi.hoisted(() => ({ getGuildTriggers: vi.fn() }));
 const { captureCustomEvent } = vi.hoisted(() => ({ captureCustomEvent: vi.fn() }));
 
+const { nowMs } = vi.hoisted(() => ({ nowMs: vi.fn(() => Date.UTC(2026, 10, 12, 12)) }));
+
 vi.mock("@/triggersCache.js", () => ({ getGuildTriggers }));
+vi.mock("@/time.js", () => ({ nowMs }));
 vi.mock("@/capture.js", () => ({
   captureCustomEvent,
   toPersonLike: (u: { id: string; username: string; globalName?: string | null; bot?: boolean }) => ({
@@ -23,6 +26,7 @@ const {
   matchContent,
   fileExtension,
   matchEmoji,
+  matchNewMember,
   evaluateMessage,
   evaluateReaction,
   evaluateMemberJoin,
@@ -30,6 +34,10 @@ const {
   runMessageTriggers,
   runReactionTriggers,
 } = await import("@/triggers.js");
+const { _resetAllRateState } = await import("@/rateWindow.js");
+
+const NOW = Date.UTC(2026, 10, 12, 12);
+const HOUR = 60 * 60 * 1000;
 
 function trigger(partial: Partial<Trigger>): Trigger {
   return {
@@ -46,6 +54,8 @@ function trigger(partial: Partial<Trigger>): Trigger {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  nowMs.mockReturnValue(NOW);
+  _resetAllRateState();
 });
 
 // ---------------------------------------------------------------------------
@@ -104,21 +114,32 @@ describe("matchEmoji", () => {
 // Evaluators
 // ---------------------------------------------------------------------------
 
+let msgSeq = 0;
 function message(opts: {
   guildId?: string;
   channelId?: string;
   content?: string;
   attachments?: Array<{ name: string | null }>;
+  authorId?: string;
+  bot?: boolean;
+  /** Member join time; `null` = member object present but join time unknown. */
+  joinedTimestamp?: number | null;
 }) {
   const atts = opts.attachments ?? [];
+  msgSeq += 1;
   return {
+    id: `m${msgSeq}`,
+    member:
+      opts.joinedTimestamp === undefined
+        ? null
+        : { joinedTimestamp: opts.joinedTimestamp },
     guildId: opts.guildId ?? "g1",
     channelId: opts.channelId ?? "c1",
     content: opts.content ?? "",
     attachments: new Map(atts.map((a, i) => [String(i), a])),
     guild: { id: opts.guildId ?? "g1", name: "Guild" },
     channel: { id: opts.channelId ?? "c1", name: "general", type: 0 },
-    author: { id: "u1", username: "alice", globalName: "Alice", bot: false },
+    author: { id: opts.authorId ?? "u1", username: "alice", globalName: "Alice", bot: !!opts.bot },
   } as never;
 }
 
@@ -174,9 +195,125 @@ describe("evaluateMessage", () => {
   });
 });
 
+describe("matchNewMember", () => {
+  it("passes when not configured", () => {
+    expect(matchNewMember(undefined, null, NOW)).toBe(true);
+  });
+  it("passes only for members who joined less than X hours ago", () => {
+    expect(matchNewMember(24, NOW - 2 * HOUR, NOW)).toBe(true);
+    expect(matchNewMember(24, NOW - 24 * HOUR, NOW)).toBe(false);
+    expect(matchNewMember(24, NOW - 30 * 24 * HOUR, NOW)).toBe(false);
+  });
+  it("fails when the join time is unknown", () => {
+    expect(matchNewMember(24, null, NOW)).toBe(false);
+    expect(matchNewMember(24, undefined, NOW)).toBe(false);
+  });
+});
+
+describe("evaluateMessage — new-member filter", () => {
+  it("only matches new members and reports how new", () => {
+    getGuildTriggers.mockReturnValue([trigger({ conditions: { newMemberHours: 24 } })]);
+    expect(evaluateMessage(message({ joinedTimestamp: NOW - 48 * HOUR }))).toHaveLength(0);
+    expect(evaluateMessage(message({}))).toHaveLength(0); // no member object
+    const out = evaluateMessage(message({ joinedTimestamp: NOW - 3 * HOUR }));
+    expect(out).toHaveLength(1);
+    expect(out[0].matchProps).toMatchObject({
+      new_member_hours: 24,
+      member_joined_hours_ago: 3,
+    });
+  });
+});
+
+describe("evaluateMessage — rate triggers", () => {
+  const raid = () =>
+    trigger({
+      id: 42,
+      eventName: "community_spam_raid",
+      conditions: {
+        content: { mode: "keywords", terms: ["http://", "https://", "discord.gg/"] },
+        newMemberHours: 24,
+        rate: { count: 3, windowMinutes: 5, cooldownMinutes: 30 },
+      },
+    });
+  const spam = (i: number, extra: Parameters<typeof message>[0] = {}) =>
+    message({
+      content: "free nitro https://scam.example",
+      authorId: `u${i}`,
+      channelId: i % 2 ? "c2" : "c1",
+      joinedTimestamp: NOW - HOUR,
+      ...extra,
+    });
+
+  it("fires once at the threshold with burst context", () => {
+    getGuildTriggers.mockReturnValue([raid()]);
+    expect(evaluateMessage(spam(1))).toHaveLength(0);
+    nowMs.mockReturnValue(NOW + 30_000);
+    expect(evaluateMessage(spam(2))).toHaveLength(0);
+    nowMs.mockReturnValue(NOW + 60_000);
+    const out = evaluateMessage(spam(3));
+    expect(out).toHaveLength(1);
+    expect(out[0].matchProps).toMatchObject({
+      rate_count: 3,
+      rate_threshold: 3,
+      rate_window_minutes: 5,
+      burst_duration_seconds: 60,
+      unique_author_count: 3,
+      sample_author_ids: ["u1", "u2", "u3"],
+      channel_ids: ["c2", "c1"],
+      new_member_hours: 24,
+      matched_term: "https://",
+    });
+    expect(out[0].matchProps).not.toHaveProperty("member_joined_hours_ago");
+    // Raid keeps going → cooldown keeps it quiet.
+    expect(evaluateMessage(spam(4))).toHaveLength(0);
+    expect(evaluateMessage(spam(5))).toHaveLength(0);
+    expect(evaluateMessage(spam(6))).toHaveLength(0);
+  });
+
+  it("doesn't count messages that fail other conditions", () => {
+    getGuildTriggers.mockReturnValue([raid()]);
+    // Established members posting links: never counted.
+    for (let i = 0; i < 5; i++) {
+      expect(evaluateMessage(spam(i, { joinedTimestamp: NOW - 90 * 24 * HOUR }))).toHaveLength(0);
+    }
+    // New members without links: never counted.
+    for (let i = 0; i < 5; i++) {
+      expect(evaluateMessage(spam(i, { content: "hello!" }))).toHaveLength(0);
+    }
+    // Bots never count.
+    for (let i = 0; i < 5; i++) {
+      expect(evaluateMessage(spam(i, { bot: true }))).toHaveLength(0);
+    }
+    // So the window is still empty: two real spam messages don't fire.
+    expect(evaluateMessage(spam(1))).toHaveLength(0);
+    expect(evaluateMessage(spam(2))).toHaveLength(0);
+  });
+
+  it("runMessageTriggers emits the burst event once", () => {
+    getGuildTriggers.mockReturnValue([raid()]);
+    for (let i = 1; i <= 6; i++) runMessageTriggers(spam(i));
+    expect(captureCustomEvent).toHaveBeenCalledTimes(1);
+    expect(captureCustomEvent.mock.calls[0][0]).toMatchObject({
+      event: "community_spam_raid",
+      distinctId: "u3",
+      properties: { trigger_id: 42, rate_count: 3, first_message_id: expect.any(String) },
+    });
+    const props = captureCustomEvent.mock.calls[0][0].properties;
+    expect(props.first_message_url).toBe(
+      `https://discord.com/channels/g1/c2/${props.first_message_id}`
+    );
+    expect(props.last_message_url).toBe(
+      `https://discord.com/channels/g1/c2/${props.last_message_id}`
+    );
+    // The base message_url is the message that tipped the threshold.
+    expect(props.message_url).toBe(props.last_message_url);
+  });
+});
+
 function reaction(opts: { guildId?: string | null; channelId?: string; emoji?: { name: string | null; id: string | null } }) {
   return {
     message: {
+      id: "rm1",
       guildId: opts.guildId === undefined ? "g1" : opts.guildId,
       channelId: opts.channelId ?? "c1",
       channel: { id: opts.channelId ?? "c1", name: "general", type: 0 },
@@ -252,6 +389,10 @@ describe("runMessageTriggers", () => {
       trigger_name: "Refunds",
       trigger_source: "message",
     });
+    expect(arg.properties.message_id).toMatch(/^m\d+$/);
+    expect(arg.properties.message_url).toBe(
+      `https://discord.com/channels/g1/c1/${arg.properties.message_id}`
+    );
   });
 
   it("does nothing when there are no matches", () => {
@@ -268,5 +409,14 @@ describe("runReactionTriggers", () => {
     runReactionTriggers(reaction({}), user);
     expect(captureCustomEvent).toHaveBeenCalledTimes(1);
     expect(captureCustomEvent.mock.calls[0][0].actor).toBeUndefined();
+  });
+
+  it("links to the message that was reacted to", () => {
+    getGuildTriggers.mockReturnValue([trigger({ source: "reaction" })]);
+    runReactionTriggers(reaction({}), { id: "u9", partial: true } as never);
+    expect(captureCustomEvent.mock.calls[0][0].properties).toMatchObject({
+      message_id: "rm1",
+      message_url: "https://discord.com/channels/g1/c1/rm1",
+    });
   });
 });
