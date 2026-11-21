@@ -6,7 +6,7 @@ import { PostHog } from "posthog-node";
  * and some may even share a key, so we cache one client per distinct destination
  * rather than constructing one per event or per guild.
  *
- * posthog-node batches internally (flushAt: 20, flushInterval: 10s), which suits
+ * posthog-node batches internally (flushAt: 20, flushInterval: 5s), which suits
  * a high-volume multi-tenant bot well — we keep those defaults.
  */
 const clients = new Map<string, PostHog>();
