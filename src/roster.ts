@@ -28,7 +28,7 @@ const EVERYONE_ROLE = "@everyone";
 
 /**
  * How many members to enqueue between flushes. Comfortably under posthog-node's
- * 1000-event queue cap, which drops the oldest event on overflow.
+ * 10000-event queue cap, which drops the oldest event on overflow.
  */
 const FLUSH_EVERY = 200;
 
@@ -91,9 +91,9 @@ export async function rosterGuild(guild: Guild): Promise<void> {
       personProperties,
     });
     emitted += 1;
-    // Drain before posthog-node's 1000-event queue fills: on overflow it drops
-    // the OLDEST queued event silently, which on a big server would quietly
-    // truncate the roster to its last 1000 members.
+    // Drain before posthog-node's 10000-event queue fills: on overflow it drops
+    // the OLDEST queued event, which on a big server would truncate the roster
+    // to its last 10000 members.
     if (emitted % FLUSH_EVERY === 0) await flushForGuild(guild.id);
   }
   await flushForGuild(guild.id);
