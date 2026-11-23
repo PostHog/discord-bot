@@ -28,6 +28,9 @@ export async function handleTestCommand(
 
   try {
     const client = getPostHogClient(cfg.posthogHost, cfg.posthogApiKey);
+    // flush() resolves even when delivery fails; failures arrive on the 'error' event.
+    const failures: unknown[] = [];
+    const stopListening = client.on("error", (error) => failures.push(error));
     client.capture({
       distinctId: interaction.user.id,
       event: "analytics_test",
@@ -40,7 +43,12 @@ export async function handleTestCommand(
     });
     // Force a flush so we surface auth/network errors synchronously here rather
     // than silently in the background batch.
-    await client.flush();
+    try {
+      await client.flush();
+    } finally {
+      stopListening();
+    }
+    if (failures.length > 0) throw failures[0];
 
     await interaction.editReply({
       content:
