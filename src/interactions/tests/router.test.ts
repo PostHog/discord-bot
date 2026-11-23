@@ -19,6 +19,12 @@ vi.mock("@/interactions/forums.js", () => ({
   handleForumsUnwatch: vi.fn(),
   handleForumsList: vi.fn(),
 }));
+vi.mock("@/interactions/idea.js", () => ({
+  IDEA_MODAL_PREFIX: "roadmap_idea",
+  handleIdeaCommand: vi.fn(),
+  handleIdeaMessageAction: vi.fn(),
+  handleIdeaModalSubmit: vi.fn(),
+}));
 vi.mock("@/interactions/status.js", () => ({ handleStatusCommand: vi.fn() }));
 vi.mock("@/interactions/test.js", () => ({ handleTestCommand: vi.fn() }));
 vi.mock("@/interactions/triggers.js", () => ({
@@ -40,6 +46,10 @@ const {
   handleModalForward,
   handleRepoAutocomplete,
 } = await import("@/interactions/bridge.js");
+const { handleIdeaCommand, handleIdeaMessageAction, handleIdeaModalSubmit } = await import(
+  "@/interactions/idea.js"
+);
+const { IDEA_MESSAGE_COMMAND_NAME } = await import("@/commands/idea.js");
 
 function ix(over: Record<string, unknown> = {}) {
   const reply = vi.fn(async () => {});
@@ -49,6 +59,7 @@ function ix(over: Record<string, unknown> = {}) {
     memberPermissions: { has: () => true },
     isAutocomplete: () => false,
     isChatInputCommand: () => false,
+    isMessageContextMenuCommand: () => false,
     isModalSubmit: () => false,
     isMessageComponent: () => false,
     isStringSelectMenu: () => false,
@@ -128,6 +139,47 @@ describe("forwarded code/connect", () => {
     await routeInteraction(i as never);
     expect(replyText(i)).toContain("Manage Server");
     expect(handleForwardedCommand).not.toHaveBeenCalled();
+  });
+});
+
+describe("roadmap ideas", () => {
+  it("routes /ph idea locally without a permission gate", async () => {
+    const i = command(null, "idea", { memberPermissions: { has: () => false } });
+    await routeInteraction(i as never);
+    expect(handleIdeaCommand).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes the message action to the idea handler", async () => {
+    const i = ix({
+      isMessageContextMenuCommand: () => true,
+      commandName: IDEA_MESSAGE_COMMAND_NAME,
+    });
+    await routeInteraction(i as never);
+    expect(handleIdeaMessageAction).toHaveBeenCalledTimes(1);
+  });
+
+  it("ignores an unknown message action", async () => {
+    const i = ix({ isMessageContextMenuCommand: () => true, commandName: "Something else" });
+    await routeInteraction(i as never);
+    expect(handleIdeaMessageAction).not.toHaveBeenCalled();
+  });
+
+  it("rejects the message action outside a guild", async () => {
+    const i = ix({
+      isMessageContextMenuCommand: () => true,
+      commandName: IDEA_MESSAGE_COMMAND_NAME,
+      inGuild: () => false,
+    });
+    await routeInteraction(i as never);
+    expect(replyText(i)).toContain("inside a server");
+    expect(handleIdeaMessageAction).not.toHaveBeenCalled();
+  });
+
+  it("routes the idea modal locally, not to PostHog", async () => {
+    const i = ix({ isModalSubmit: () => true, customId: "roadmap_idea:1:2:3" });
+    await routeInteraction(i as never);
+    expect(handleIdeaModalSubmit).toHaveBeenCalledTimes(1);
+    expect(handleModalForward).not.toHaveBeenCalled();
   });
 });
 
